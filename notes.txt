@@ -1,0 +1,16 @@
+
+Preguntas:
+- ¿Es necesario demonizar el server?
+
+Observaciones:
+- Capturar tamaño del string mientras se lee archivo
+
+DONE:
+- Implementación del algoritmo KMP
+- Procesar búsquedas de secuencias en paralelo
+
+TODO:
+- Heap de seq_t para calcular el porcentaje de match
+- Implementar estrategia productor consumidor
+- Convertir heap a estructura lineal para calcular porcentaje de match
+- Implementar algoritmo que calcule el porcentaje de match
