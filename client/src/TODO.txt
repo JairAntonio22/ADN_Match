@@ -1,0 +1,17 @@
+Leer nombre de archivo referencia
+Revisar si el archivo existe
+Leer archivo caracter por caracter
+Capturar tamano del archivo
+
+
+Errores
+El archivo no existe
+El archivo contiene caracteres no validos
+
+
+Casos de prueba
+El archivo no existe
+El archivo contiene caracteres no validos
+    Regresar error
+El archivo excede el tamano del buffer y hay que hacer realloc
+    Asignar mas memoria
