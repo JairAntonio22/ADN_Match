@@ -50,7 +50,7 @@
 #define QUIT 3
 
 // Deault variable values
-#define INITIAL_BLOCK_COUNT 0
+#define INITIAL_BLOCK_COUNT 1
 #define INITIAL_BLOCK_SIZE 0
 #define INITIAL_BLOCK_SIZE_FACTOR 1
 
@@ -92,7 +92,7 @@ int reference_status, sample_status;
 int block_size_factor;
 int sample_size_factor = 1;
 // Dinamically allocated memory sizes
-int limit_block_size;
+long unsigned int limit_block_size;
 int sample_buffer_size;
 
 // Reference and sample block lengths
@@ -160,22 +160,22 @@ int main()
         }
     } while (reference_status != OK_UPLOAD_REFERENCE);
 
-    do
-    {
-        // Read sample sequence file name from console
-        printf("Ingresa nombre de archivo con secuencia muestra: ");
-        fgets(input_buffer, INPUT_BUFFER_SIZE, stdin);
-        input_buffer[strlen(input_buffer) - 1] = '\0';
+    // do
+    // {
+    //     // Read sample sequence file name from console
+    //     printf("Ingresa nombre de archivo con secuencia muestra: ");
+    //     fgets(input_buffer, INPUT_BUFFER_SIZE, stdin);
+    //     input_buffer[strlen(input_buffer) - 1] = '\0';
 
-        switch (sample_status = upload_sample())
-        {
-        case ERROR_FILE_NOT_EXISTS:
-            printf("El archivo no existe, intenta de nuevo\n");
-            break;
-        default:
-            break;
-        }
-    } while (upload_sample() != OK_UPLOAD_SAMPLE);
+    //     switch (sample_status = upload_sample())
+    //     {
+    //     case ERROR_FILE_NOT_EXISTS:
+    //         printf("El archivo no existe, intenta de nuevo\n");
+    //         break;
+    //     default:
+    //         break;
+    //     }
+    // } while (upload_sample() != OK_UPLOAD_SAMPLE);
 
     switch (print_results())
     {
@@ -232,8 +232,8 @@ int upload_reference()
     current_block_size = INITIAL_BLOCK_SIZE;
     
     // Create first block    
-    sequence_blocks = malloc(block_count * sizeof(seq_t));
-    sequence_blocks[block_count].data = malloc(limit_block_size);
+    sequence_blocks = malloc(sizeof(seq_t));
+    sequence_blocks[block_count - 1].data = malloc(limit_block_size);
 
     // Read file character by character
     while ((nucleobase = getc(f_reference)) != EOF)
@@ -242,9 +242,9 @@ int upload_reference()
         if (current_block_size == limit_block_size)
         {
             limit_block_size = ++block_size_factor * BLOCK_BUFFER_BASE_SIZE;
-            sequence_blocks[block_count].data = realloc(sequence_blocks[block_count].data, limit_block_size);
+            sequence_blocks[block_count - 1].data = realloc(sequence_blocks[block_count - 1].data, limit_block_size);
 
-            if (sequence_blocks[block_count].data == NULL)
+            if (sequence_blocks[block_count - 1].data == NULL)
                 return ERROR_MEMORY_ALLOCATION_FAILED;
         }
 
@@ -252,16 +252,15 @@ int upload_reference()
         if (is_nucleobase(nucleobase) == false && nucleobase != '\r' && nucleobase != '\n')
             return ERROR_NON_NUCLEOBASE_FOUND;
 
-        printf("Here %c\n", nucleobase);
-
         // End of block found
         if (nucleobase == '\r')
         {
             if ((nucleobase = getc(f_reference)) == '\n')
             {
                 // Save current block size
-                sequence_blocks[block_count].size = current_block_size;
+                sequence_blocks[block_count - 1].size = current_block_size;
                 printf("Block %i, size %i\n", block_count, current_block_size);
+
 
                 // Reset block variables
                 current_block_size = INITIAL_BLOCK_SIZE;
@@ -270,14 +269,15 @@ int upload_reference()
 
                 // Create new block
                 block_count++;
+                printf("New size: %i\n", block_count);
                 sequence_blocks = realloc(sequence_blocks, block_count * sizeof(seq_t));
-                sequence_blocks[block_count].data = malloc(limit_block_size);
+                sequence_blocks[block_count - 1].data = malloc(limit_block_size);
             }
         }
         else
         {
             // Store character
-            reference_buffer[current_block_size] = nucleobase;
+            sequence_blocks[block_count - 1].data[current_block_size] = nucleobase;
             // Update current block size
             current_block_size++;
         }
@@ -309,15 +309,18 @@ int finish()
 {
     close(socket_desc);
 
-    for (int i = 0; i < block_count; i++)
-    {
-        for (int j = 0; j < sequence_blocks[i].size; j++)
-        {
-            printf("%c", sequence_blocks[i].data[j]);
-        }
-        
-        printf("\nBloque: %i\n", i);
-    }
+    // for (int i = 0; i < block_count; i++)
+    // {
+    //     printf("|hola");
+    //     for (int j = 0; j < sequence_blocks[i].size; j++)
+    //     {
+    //         if(!is_nucleobase(sequence_blocks[i].data[j]))
+    //             printf("Char: %i\n", sequence_blocks[i].data[j]);
+
+    //         printf("%c", sequence_blocks[i].data[j]);
+    //     }
+    //     printf("|");
+    // }
     
 
     for (int i = 0; i < block_count; i++)
@@ -346,3 +349,7 @@ bool is_nucleobase(char c)
 //     }
 
 //     printf("\n");
+
+//printf("Size struct: %lu Memory for struct: %lu\n", sizeof(seq_t), block_count * sizeof(seq_t));
+// printf("Memory for data: %lu\n", limit_block_size);
+// printf("Here\n");
