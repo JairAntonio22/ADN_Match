@@ -1,2 +1,0 @@
-Personas.csv
-Cursos.csv
