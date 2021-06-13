@@ -1,6 +1,6 @@
 
 CC=gcc
-CFLAGS=-Wall -Wextra -g
+CFLAGS=-pthread -Wall -Wextra -g
 
 SRC=src
 SRCS=$(wildcard $(SRC)/*.c)
