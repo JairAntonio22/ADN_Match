@@ -167,7 +167,7 @@ float calculate_match(pair_t heap[], int size, int total_size) {
 			max = heap[i].pos + heap[i].len;
 
 		} else if (heap[i].pos + heap[i].len >= max) {
-			match += (heap[i].pos + heap[i].len - 1) - max;
+			match += (heap[i].pos + heap[i].len) - max;
 			max = heap[i].pos + heap[i].len;
 		}
 	}

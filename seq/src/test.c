@@ -13,7 +13,7 @@ int main(void) {
 
 	seq_t seqs[] = {
 		{.size = 10, .data = "abcdefghij"},
-		{.size = 15, .data = "defghijklmnopqrs"},
+		{.size = 16, .data = "defghijklmnopqrs"},
 		{.size =  5, .data = "wxyza"},
 		{.size =  4, .data = "vwxy"},
 		{.size =  3, .data = "efg"},
