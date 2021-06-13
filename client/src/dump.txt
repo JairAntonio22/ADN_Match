@@ -1,3 +1,44 @@
 //printf("Max size: %i\n", max_block_size);
 
 // printf("Blocks string: |%s|\n", request_buffer);
+
+//printf("Block 0, size: %i, data: %s\n", sequence_blocks[0].size, sequence_blocks[0].data);
+
+
+    // for (int i = 0; i < block_count; i++)
+    //     printf("Block: %i, size: %i\n", i, sequence_blocks[i].size);
+    
+    // printf("Sample size: %i\n", sample_block->size);
+
+    // printf("Size of int: %lu\n", sizeof(int));
+
+    // for (int i = 0; i < block_count; i++)
+    // {
+    //     printf("|hola");
+    //     for (int j = 0; j < sequence_blocks[i].size; j++)
+    //     {
+    //         if(!is_nucleobase(sequence_blocks[i].data[j]))
+    //             printf("Char: %i\n", sequence_blocks[i].data[j]);
+
+    //         printf("%c", sequence_blocks[i].data[j]);
+    //     }
+    //     printf("|");
+    // }
+
+
+    // printf("|%s|\n", input_buffer);
+
+// printf("Length: %i\n", current_block_size);
+
+//     for (int i = 0; i < current_block_size; i++)
+//     {
+//         printf("%c", reference_buffer[i]);
+//     }
+
+//     printf("\n");
+
+//printf("Size struct: %lu Memory for struct: %lu\n", sizeof(seq_t), block_count * sizeof(seq_t));
+// printf("Memory for data: %lu\n", limit_block_size);
+// printf("Here\n");
+
+//printf("Block %i, size %lu\n", block_count, current_block_size);

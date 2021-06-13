@@ -101,9 +101,10 @@ int current_block_size;
 int block_count;
 
 //
-int percentage;
-int mapped_sequences;
-int unmapped_sequences;
+char percentage[INT_LENGTH];
+char mapped_sequences[INT_LENGTH];
+char unmapped_sequences[INT_LENGTH];
+char match_position[INT_LENGTH];
 
 // Reference file
 FILE* f_reference = NULL;
@@ -179,67 +180,59 @@ int main()
         default:
             break;
         }
-    } while (read_sample() != OK_READ_SAMPLE);
+    } while (sample_status != OK_READ_SAMPLE);
 
+    // Upload reference blocks
     do
     {
         switch (reference_status = upload_reference())
         {
         case ERROR_REQUEST_NOT_SENT:
             break;
-        case ERROR_REPLY_NOT_RECEIVED:
-            break;
         default:
             break;
         }
     } while (reference_status != OK_UPLOAD_REFERENCE);
 
-    // do
-    // {
-    //     switch (sample_status = upload_sample())
-    //     {
-    //     case ERROR_REQUEST_NOT_SENT:
-    //         break;
-    //     case ERROR_REPLY_NOT_RECEIVED:
-    //         break;
-    //     default:
-    //         break;
-    //     }
-    // } while (sample_status != OK_UPLOAD_SAMPLE);
+    // Upload sample block
+    do
+    {
+        switch (sample_status = upload_sample())
+        {
+        case ERROR_REQUEST_NOT_SENT:
+            break;
+        default:
+            break;
+        }
+    } while (sample_status != OK_UPLOAD_SAMPLE);
 
-    // switch (print_results())
-    // {
-    // case OK_PRINT_RESULTS:
-    //     break;
-    // default:
-    //     break;
-    // }
+    // Receive and print results from server
+    switch (print_results())
+    {
+    case OK_PRINT_RESULTS:
+        break;
+    case ERROR_REPLY_NOT_RECEIVED:
+    default:
+        break;
+    }
 
     finish();
 }
 
 int init()
 {
-    // sample_buffer_size = sample_size_factor * SAMPLE_BUFFER_BASE_SIZE;
-    
-    // reference_buffer = malloc(limit_block_size);
-    // sample_buffer = malloc(sample_buffer_size);
+    // 1. Create new socket using IPv4 and TCP/IP
+    if ((socket_desc = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+        return ERROR_SOCKET_NOT_CREATED;
 
-    // if (reference_buffer == NULL || sample_buffer == NULL)
-    //     return ERROR_MEMORY_ALLOCATION_FAILED;
+    // 2. Define server values: address family, address and port
+    server.sin_family = AF_INET;
+    server.sin_port = htons(PORT);
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
 
-    // // 1. Create new socket using IPv4 and TCP/IP
-    // if ((socket_desc = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-    //     return ERROR_SOCKET_NOT_CREATED;
-
-    // // 2. Define server values: address family, address and port
-    // server.sin_family = AF_INET;
-    // server.sin_port = htons(PORT);
-    // server.sin_addr.s_addr = inet_addr(SERVER_IP);
-
-    // // 3. Connect socket to server
-    // if (connect(socket_desc, (struct sockaddr*) &server, sizeof(server)) < 0)
-    //     return ERROR_SERVER_NOT_CONNECTED;
+    // 3. Connect socket to server
+    if (connect(socket_desc, (struct sockaddr*) &server, sizeof(server)) < 0)
+        return ERROR_SERVER_NOT_CONNECTED;
 
     // 4. Connection successful
     connected = true;
@@ -292,10 +285,9 @@ int read_reference()
             {
                 // Save current block size
                 sequence_blocks[block_count - 1].size = current_block_size;
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
                 // Delimit string with termination char
                 sequence_blocks[block_count - 1].data[current_block_size] = '\0';
-                //printf("Current: %i\tLimit: %i\n", current_block_size, limit_block_size);
 
                 // Reset block variables
                 current_block_size = INITIAL_BLOCK_SIZE;
@@ -361,54 +353,55 @@ int read_sample()
 
     // Save sample size
     sample_block->size = current_block_size;
-    printf("Current: %i\tLimit: %i\n", current_block_size, limit_block_size);
 
     // Delimit string with termination char
-    //sample_block->data[current_block_size] = '\0';
-    
+    sample_block->data[current_block_size] = '\0';
     
     return OK_READ_SAMPLE;
 }
 
 int upload_reference()
 {    
-    // // Copy number of blocks to request buffer
-    // sprintf(request_buffer, "%i", block_count);
+    // Copy number of blocks to request buffer
+    sprintf(request_buffer, "%i", block_count);
     
-    // // Send number of blocks to server
-    // if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
-    //     return ERROR_REQUEST_NOT_SENT;
+    // Send number of blocks to server
+    if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
+        return ERROR_REQUEST_NOT_SENT;
 
-    // for (int i = 0; i < block_count; i++)
-    // {
-    //     // Send block size
-    //     sprintf(request_buffer, "%i", sequence_blocks[i].size);
+    // Send all sequence blocks: size, then data
+    for (int i = 0; i < block_count; i++)
+    {
+        // Copy block size
+        sprintf(request_buffer, "%i", sequence_blocks[i].size);
 
-    //     if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
-    //         return ERROR_REQUEST_NOT_SENT;
+        // Send block size
+        if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
+            return ERROR_REQUEST_NOT_SENT;
 
-    //     // Send block data
-    //     if (send(socket_desc, sequence_blocks[i].data, sequence_blocks[i].size, 0) < 0)
-    //         return ERROR_REQUEST_NOT_SENT;
-    // }
+        // Send block data
+        if (send(socket_desc, sequence_blocks[i].data, sequence_blocks[i].size, 0) < 0)
+            return ERROR_REQUEST_NOT_SENT;
+    }
 
     return OK_UPLOAD_REFERENCE;
 }
 
 int upload_sample()
 {
-    // for (int i = 0; i < block_count; i++)
-    // {
-    //     // //Send block size
-    //     // sprintf(request_buffer, "%i", sample_block->size);
+    for (int i = 0; i < block_count; i++)
+    {
+        // Copy block size
+        sprintf(request_buffer, "%i", sample_block->size);
 
-    //     // if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
-    //     //     return ERROR_REQUEST_NOT_SENT;
+        //Send block size
+        if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
+            return ERROR_REQUEST_NOT_SENT;
 
-    //     // // Send block data
-    //     // if (send(socket_desc, sample_block->data, sample_block->size, 0) < 0)
-    //     //     return ERROR_REQUEST_NOT_SENT;
-    // }
+        // Send block data
+        if (send(socket_desc, sample_block->data, sample_block->size, 0) < 0)
+            return ERROR_REQUEST_NOT_SENT;
+    }
 
     return OK_UPLOAD_SAMPLE;
 }
@@ -416,63 +409,38 @@ int upload_sample()
 int print_results()
 {
     //Receive percentage
-    // if (recv(socket_desc, reply_buffer, INT_LENGTH, 0) < 0)
-    //     return ERROR_REPLY_NOT_RECEIVED;
-
-    // percentage = atoi(reply_buffer);
+    if (recv(socket_desc, percentage, INT_LENGTH, 0) < 0)
+        return ERROR_REPLY_NOT_RECEIVED;
 
     // Receive number of mapped sequences
-    // if (recv(socket_desc, reply_buffer, INT_LENGTH, 0) < 0)
-    //     return ERROR_REPLY_NOT_RECEIVED;
-
-    // mapped_sequences = atoi(reply_buffer);
+    if (recv(socket_desc, mapped_sequences, INT_LENGTH, 0) < 0)
+        return ERROR_REPLY_NOT_RECEIVED;
 
     // Receive number of unmapped sequences
-    // if (recv(socket_desc, reply_buffer, INT_LENGTH, 0) < 0)
-    //     return ERROR_REPLY_NOT_RECEIVED;
+    if (recv(socket_desc, unmapped_sequences, INT_LENGTH, 0) < 0)
+        return ERROR_REPLY_NOT_RECEIVED;
 
-    // unmapped_sequences = atoi(reply_buffer);
+    // Receive and print results per block
+    for (int i = 0; i < block_count; i++)
+    {
+        if (recv(socket_desc, match_position, INT_LENGTH, 0) < 0)
+            return ERROR_REPLY_NOT_RECEIVED;
 
-    // Receive results per block
-    // for (int i = 0; i < block_count; i++)
-    // {
-    //     if (recv(socket_desc, reply_buffer, INT_LENGTH, 0) < 0)
-    //         return ERROR_REPLY_NOT_RECEIVED;
+        printf("Bloque %i a partir del caracter %s", (i + 1), match_position);
+    }    
 
-    //     sequence_blocks[i].map_start = atoi(reply_buffer);
-    // }
-    
+    printf("El archivo cubre el %s%% del genoma de referencia\n", percentage);
+    printf("%s secuencias mapeadas\n", mapped_sequences);
+    printf("%i secuencias no mapeadas\n", unmapped_sequences);
 
     return OK_PRINT_RESULTS;
 }
 
 int finish()
 {
-    printf("Block 0, size: %i, data: %s\n", sequence_blocks[0].size, sequence_blocks[0].data);
-
     block_count++;
-    // printf("Count: %i\n", block_count);
 
-    // for (int i = 0; i < block_count; i++)
-    //     printf("Block: %i, size: %i\n", i, sequence_blocks[i].size);
-    
-    // printf("Sample size: %i\n", sample_block->size);
-
-    // printf("Size of int: %lu\n", sizeof(int));
-
-    // for (int i = 0; i < block_count; i++)
-    // {
-    //     printf("|hola");
-    //     for (int j = 0; j < sequence_blocks[i].size; j++)
-    //     {
-    //         if(!is_nucleobase(sequence_blocks[i].data[j]))
-    //             printf("Char: %i\n", sequence_blocks[i].data[j]);
-
-    //         printf("%c", sequence_blocks[i].data[j]);
-    //     }
-    //     printf("|");
-    // }
-    close(socket_desc);   
+    close(socket_desc);
 
     for (int i = 0; i < block_count; i++)
         free(sequence_blocks[i].data);
@@ -495,20 +463,3 @@ bool is_nucleobase(char c)
 
     return false;
 }
-
-// printf("|%s|\n", input_buffer);
-
-// printf("Length: %i\n", current_block_size);
-
-//     for (int i = 0; i < current_block_size; i++)
-//     {
-//         printf("%c", reference_buffer[i]);
-//     }
-
-//     printf("\n");
-
-//printf("Size struct: %lu Memory for struct: %lu\n", sizeof(seq_t), block_count * sizeof(seq_t));
-// printf("Memory for data: %lu\n", limit_block_size);
-// printf("Here\n");
-
-//printf("Block %i, size %lu\n", block_count, current_block_size);
