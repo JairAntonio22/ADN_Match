@@ -20,7 +20,7 @@ int main(void) {
 		{.size =  2, .data = "mn"},
 	};
 
-	int pos[] = {0, 0, 0, 0};
+	int pos[n];
 	float percent;
 
 	batch_search(seqs, n, seq, pos, &percent);

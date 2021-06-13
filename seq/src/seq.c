@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <pthread.h>
+#include <semaphore.h>
+#include <sys/sem.h>
 
 #include "seq.h"
-#include "sem.h"
 
 void find_prefixes(seq_t pat, int prefixes[pat.size]) {
 	prefixes[0] = 0;
@@ -69,8 +71,8 @@ typedef struct {
 	int *result;
 	int num_results;
 	pthread_mutex_t *mutex;
-	mySem *full;
-	mySem *empty;
+	sem_t *full;
+	sem_t *empty;
 	pair_t *buffer;
 	int *size;
 } search_args_t;
@@ -80,7 +82,7 @@ void* search(void *v_args) {
 
 	*args.result = kmp_search(args.seq, args.pat);
 
-	mySem_wait(args.empty);
+	sem_wait(args.empty);
 	pthread_mutex_lock(args.mutex);
 
 	args.buffer[*args.size] = (pair_t) {
@@ -91,7 +93,7 @@ void* search(void *v_args) {
 	(*args.size)++;
 
 	pthread_mutex_unlock(args.mutex);
-	mySem_signal(args.full);
+	sem_post(args.full);
 
 	return NULL;
 }
@@ -101,8 +103,8 @@ typedef struct {
 	float *result;
 	int num_results;
 	pthread_mutex_t *mutex;
-	mySem *full;
-	mySem *empty;
+	sem_t *full;
+	sem_t *empty;
 	pair_t *buffer;
 	int *size;
 } match_args_t;
@@ -153,36 +155,7 @@ void pop_heap(pair_t heap[], int *size) {
 	}
 }
 
-void* match(void *v_args) {
-	match_args_t args = *((match_args_t*) v_args);
-
-	pair_t heap[args.num_results + 1];
-	heap[0] = (pair_t) {-1, -1};
-	int size = 0;
-
-	int read_index = 0;
-
-	while (read_index < args.num_results) {
-		mySem_wait(args.full);
-		pthread_mutex_lock(args.mutex);
-
-		pair_t entry = args.buffer[read_index];
-		read_index++;
-
-		pthread_mutex_unlock(args.mutex);
-		mySem_signal(args.empty);
-
-		if (entry.pos >= 0) {
-			push_heap(entry, heap, &size);
-		}
-	}
-
-	int tmp_size = size;
-
-	while (tmp_size != 0) {
-		pop_heap(heap, &tmp_size);
-	}
-
+float calculate_match(pair_t heap[], int size, int total_size) {
 	int match = 0;
 	int max = 0;
 
@@ -197,7 +170,40 @@ void* match(void *v_args) {
 		}
 	}
 
-	*args.result = ((float) match) / ((float) args.seq.size);
+	return ((float) match) / ((float) total_size);
+}
+
+void* match(void *v_args) {
+	match_args_t args = *((match_args_t*) v_args);
+
+	pair_t heap[args.num_results + 1];
+	heap[0] = (pair_t) {-1, -1};
+	int size = 0;
+
+	int read_index = 0;
+
+	while (read_index < args.num_results) {
+		sem_wait(args.full);
+		pthread_mutex_lock(args.mutex);
+
+		pair_t entry = args.buffer[read_index];
+		read_index++;
+
+		pthread_mutex_unlock(args.mutex);
+		sem_post(args.empty);
+
+		if (entry.pos >= 0) {
+			push_heap(entry, heap, &size);
+		}
+	}
+
+	int tmp_size = size;
+
+	while (tmp_size != 0) {
+		pop_heap(heap, &tmp_size);
+	}
+
+	*args.result = calculate_match(heap, size, args.seq.size);
 
 	return NULL;
 }
@@ -206,11 +212,11 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 	pthread_mutex_t mutex;
 	pthread_mutex_init(&mutex, NULL);
 
-	mySem full;
-	mySem_init(&full, 0);
+	sem_unlink("full");
+	sem_t *full = sem_open("full", IPC_CREAT, 0660, 0);
 
-	mySem empty;
-	mySem_init(&empty, n);
+	sem_unlink("empty");
+	sem_t *empty = sem_open("empty", IPC_CREAT, 0660, n);
 
 	pthread_t threads[n];
 	search_args_t search_args[n];
@@ -224,8 +230,8 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 		.result = percent,
 		.num_results = n,
 		.mutex = &mutex,
-		.full = &full,
-		.empty = &empty,
+		.full = full,
+		.empty = empty,
 		.buffer = buffer,
 		.size = &size
 	};
@@ -239,8 +245,8 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 			.result = &pos[i],
 			.num_results = n,
 			.mutex = &mutex,
-			.full = &full,
-			.empty = &empty,
+			.full = full,
+			.empty = empty,
 			.buffer = buffer,
 			.size = &size
 		};
@@ -253,4 +259,8 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 	}
 
 	pthread_join(thread, NULL);
+
+	pthread_mutex_destroy(&mutex);
+	sem_close(full);
+	sem_close(empty);
 }
