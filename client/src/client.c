@@ -8,7 +8,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include "seq.h"
+#include "seq_client.h"
 
 // Server IP
 #define SERVER_IP "127.0.0.1"
@@ -16,6 +16,8 @@
 #define PORT 3000
 
 #define OK_INIT 0
+#define OK_READ_REFERENCE 0
+#define OK_READ_SAMPLE 0
 #define OK_UPLOAD_REFERENCE 0
 #define OK_UPLOAD_SAMPLE 0
 #define OK_PRINT_RESULTS 0
@@ -26,8 +28,11 @@
 #define ERROR_FILE_NOT_EXISTS 4
 #define ERROR_FILE_OTHER 5
 #define ERROR_NON_NUCLEOBASE_FOUND 6
+#define ERROR_REQUEST_NOT_SENT 7
+#define ERROR_REPLY_NOT_RECEIVED 8
 
 #define MB 1048576
+#define INT_LENGTH 12
 
 // Buffer sizes
 // Menu selection size
@@ -45,10 +50,6 @@
 // Server reply size
 #define REPLY_BUFFER_SIZE 2001
 
-#define UPLOAD_REFERENCE 1
-#define UPLOAD_SEQUENCE 2
-#define QUIT 3
-
 // Deault variable values
 #define INITIAL_BLOCK_COUNT 1
 #define INITIAL_BLOCK_SIZE 0
@@ -57,6 +58,8 @@
 typedef enum {false, true} bool;
 
 int init();
+int read_reference();
+int read_sample();
 int upload_reference();
 int upload_sample();
 int print_results();
@@ -72,10 +75,10 @@ struct sockaddr_in server;
 
 // Input buffer
 char input_buffer[INPUT_BUFFER_SIZE];
+// Request buffer to send data to server
+char request_buffer[INT_LENGTH];
 // Reply buffer to receive data from server
 char reply_buffer[REPLY_BUFFER_SIZE];
-// Request buffer to send data to server
-char request_buffer[REQUEST_BUFFER_SIZE];
 
 // Reference sequence buffer
 char* reference_buffer;
@@ -91,11 +94,16 @@ int reference_status, sample_status;
 // Dinamically allocated memory size factor
 int block_size_factor;
 // Dinamically allocated memory sizes
-long unsigned int limit_block_size;
+int limit_block_size;
 // Reference and sample block lengths
-long unsigned int current_block_size;
+int current_block_size;
 // Reference block count
 int block_count;
+
+//
+int percentage;
+int mapped_sequences;
+int unmapped_sequences;
 
 // Reference file
 FILE* f_reference = NULL;
@@ -137,7 +145,7 @@ int main()
         input_buffer[strlen(input_buffer) - 1] = '\0';
 
         // Upload reference
-        switch (reference_status = upload_reference())
+        switch (reference_status = read_reference())
         {
         case ERROR_FILE_NOT_EXISTS:
             printf("El archivo no existe, intenta de nuevo\n");
@@ -149,12 +157,12 @@ int main()
             printf("No se pudo reservar mas memoria para almacenar la secuencia\n");
             break;
         case ERROR_NON_NUCLEOBASE_FOUND:
-            printf("La secuencia contiene un caracter que no corresponde a una base nitrogenada: (%lu,%i)\n", current_block_size, nucleobase);
+            printf("La secuencia contiene un caracter que no corresponde a una base nitrogenada: (%i,%i)\n", current_block_size, nucleobase);
             break;
         default:
             break;
         }
-    } while (reference_status != OK_UPLOAD_REFERENCE);
+    } while (reference_status != OK_READ_REFERENCE);
 
     do
     {
@@ -163,7 +171,7 @@ int main()
         fgets(input_buffer, INPUT_BUFFER_SIZE, stdin);
         input_buffer[strlen(input_buffer) - 1] = '\0';
 
-        switch (sample_status = upload_sample())
+        switch (sample_status = read_sample())
         {
         case ERROR_FILE_NOT_EXISTS:
             printf("El archivo no existe, intenta de nuevo\n");
@@ -171,15 +179,41 @@ int main()
         default:
             break;
         }
-    } while (upload_sample() != OK_UPLOAD_SAMPLE);
+    } while (read_sample() != OK_READ_SAMPLE);
 
-    switch (print_results())
+    do
     {
-    case OK_PRINT_RESULTS:
-        break;
-    default:
-        break;
-    }
+        switch (reference_status = upload_reference())
+        {
+        case ERROR_REQUEST_NOT_SENT:
+            break;
+        case ERROR_REPLY_NOT_RECEIVED:
+            break;
+        default:
+            break;
+        }
+    } while (reference_status != OK_UPLOAD_REFERENCE);
+
+    // do
+    // {
+    //     switch (sample_status = upload_sample())
+    //     {
+    //     case ERROR_REQUEST_NOT_SENT:
+    //         break;
+    //     case ERROR_REPLY_NOT_RECEIVED:
+    //         break;
+    //     default:
+    //         break;
+    //     }
+    // } while (sample_status != OK_UPLOAD_SAMPLE);
+
+    // switch (print_results())
+    // {
+    // case OK_PRINT_RESULTS:
+    //     break;
+    // default:
+    //     break;
+    // }
 
     finish();
 }
@@ -212,7 +246,7 @@ int init()
     return OK_INIT;
 }
 
-int upload_reference()
+int read_reference()
 {
     // Check if file with given name exists
     if (access(input_buffer, F_OK) != 0)
@@ -258,6 +292,10 @@ int upload_reference()
             {
                 // Save current block size
                 sequence_blocks[block_count - 1].size = current_block_size;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                // Delimit string with termination char
+                sequence_blocks[block_count - 1].data[current_block_size] = '\0';
+                //printf("Current: %i\tLimit: %i\n", current_block_size, limit_block_size);
 
                 // Reset block variables
                 current_block_size = INITIAL_BLOCK_SIZE;
@@ -281,10 +319,10 @@ int upload_reference()
 
     block_count--;
 
-    return OK_UPLOAD_REFERENCE;
+    return OK_READ_REFERENCE;
 }
 
-int upload_sample()
+int read_sample()
 {
     // Check if file with given name exists
     if (access(input_buffer, F_OK) != 0)
@@ -321,27 +359,106 @@ int upload_sample()
         current_block_size++;
     }
 
+    // Save sample size
     sample_block->size = current_block_size;
+    printf("Current: %i\tLimit: %i\n", current_block_size, limit_block_size);
 
-    //printf("Sample size: %lu\n", current_block_size);
+    // Delimit string with termination char
+    //sample_block->data[current_block_size] = '\0';
     
+    
+    return OK_READ_SAMPLE;
+}
+
+int upload_reference()
+{    
+    // // Copy number of blocks to request buffer
+    // sprintf(request_buffer, "%i", block_count);
+    
+    // // Send number of blocks to server
+    // if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
+    //     return ERROR_REQUEST_NOT_SENT;
+
+    // for (int i = 0; i < block_count; i++)
+    // {
+    //     // Send block size
+    //     sprintf(request_buffer, "%i", sequence_blocks[i].size);
+
+    //     if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
+    //         return ERROR_REQUEST_NOT_SENT;
+
+    //     // Send block data
+    //     if (send(socket_desc, sequence_blocks[i].data, sequence_blocks[i].size, 0) < 0)
+    //         return ERROR_REQUEST_NOT_SENT;
+    // }
+
+    return OK_UPLOAD_REFERENCE;
+}
+
+int upload_sample()
+{
+    // for (int i = 0; i < block_count; i++)
+    // {
+    //     // //Send block size
+    //     // sprintf(request_buffer, "%i", sample_block->size);
+
+    //     // if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
+    //     //     return ERROR_REQUEST_NOT_SENT;
+
+    //     // // Send block data
+    //     // if (send(socket_desc, sample_block->data, sample_block->size, 0) < 0)
+    //     //     return ERROR_REQUEST_NOT_SENT;
+    // }
+
     return OK_UPLOAD_SAMPLE;
 }
 
 int print_results()
 {
+    //Receive percentage
+    // if (recv(socket_desc, reply_buffer, INT_LENGTH, 0) < 0)
+    //     return ERROR_REPLY_NOT_RECEIVED;
+
+    // percentage = atoi(reply_buffer);
+
+    // Receive number of mapped sequences
+    // if (recv(socket_desc, reply_buffer, INT_LENGTH, 0) < 0)
+    //     return ERROR_REPLY_NOT_RECEIVED;
+
+    // mapped_sequences = atoi(reply_buffer);
+
+    // Receive number of unmapped sequences
+    // if (recv(socket_desc, reply_buffer, INT_LENGTH, 0) < 0)
+    //     return ERROR_REPLY_NOT_RECEIVED;
+
+    // unmapped_sequences = atoi(reply_buffer);
+
+    // Receive results per block
+    // for (int i = 0; i < block_count; i++)
+    // {
+    //     if (recv(socket_desc, reply_buffer, INT_LENGTH, 0) < 0)
+    //         return ERROR_REPLY_NOT_RECEIVED;
+
+    //     sequence_blocks[i].map_start = atoi(reply_buffer);
+    // }
+    
+
     return OK_PRINT_RESULTS;
 }
 
 int finish()
 {
-    block_count++;
-    printf("Count: %i\n", block_count);
+    printf("Block 0, size: %i, data: %s\n", sequence_blocks[0].size, sequence_blocks[0].data);
 
-    for (int i = 0; i < block_count; i++)
-        printf("Block: %i, size: %i\n", i, sequence_blocks[i].size);
+    block_count++;
+    // printf("Count: %i\n", block_count);
+
+    // for (int i = 0; i < block_count; i++)
+    //     printf("Block: %i, size: %i\n", i, sequence_blocks[i].size);
     
-    printf("Sample size: %i\n", sample_block->size);
+    // printf("Sample size: %i\n", sample_block->size);
+
+    // printf("Size of int: %lu\n", sizeof(int));
 
     // for (int i = 0; i < block_count; i++)
     // {

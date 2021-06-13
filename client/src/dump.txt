@@ -1,0 +1,3 @@
+//printf("Max size: %i\n", max_block_size);
+
+// printf("Blocks string: |%s|\n", request_buffer);
