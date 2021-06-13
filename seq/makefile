@@ -1,6 +1,6 @@
 
 CC=gcc
-CFLAGS=-Wall -Wextra -O2
+CFLAGS=-Wall -Wextra -g
 
 SRC=src
 SRCS=$(wildcard $(SRC)/*.c)
