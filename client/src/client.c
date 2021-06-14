@@ -473,33 +473,22 @@ int finish()
 {
     block_count++;
 
-    //close(socket_desc);
+    close(socket_desc);
 
     for (int i = 0; i < block_count; i++)
-    {
-        // printf("Free: %i\n", i);
-        // printf("Size %i: %i\n", i, sequence_blocks[i].size);
-        //free(sequence_blocks[i].data);
-    }
+        free(sequence_blocks[i].data);
           
     free(sequence_blocks);
 
     free(sample_block->data);
     free(sample_block);
 
-
     if (f_reference != NULL)
-    {
-        //fclose(f_reference);
-        f_reference = NULL;
-    }
+        fclose(f_reference);
         
 
     if (f_sample != NULL)
-    {
-        //fclose(f_sample);
-        f_sample = NULL;
-    }
+        fclose(f_sample);
 
     return OK_FINISH;
 }
