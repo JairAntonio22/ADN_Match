@@ -15,3 +15,11 @@ El archivo contiene caracteres no validos
     Regresar error
 El archivo excede el tamano del buffer y hay que hacer realloc
     Asignar mas memoria
+
+ref_block_quantity
+ref_block_size
+ref_block_data
+
+sm_block_size
+sm_block_data
+

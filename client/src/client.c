@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "seq_client.h"
 
 // Server IP
@@ -31,6 +32,7 @@
 #define ERROR_REQUEST_NOT_SENT 7
 #define ERROR_REPLY_NOT_RECEIVED 8
 
+#define KB 1024
 #define MB 1048576
 #define INT_LENGTH 12
 
@@ -38,10 +40,9 @@
 // Menu selection size
 #define SELECTION_BUFFER_SIZE 1
 // Reference sequence size
-//#define BLOCK_BUFFER_BASE_SIZE (2 * MB)
-#define BLOCK_BUFFER_BASE_SIZE (1 * MB)
+#define BLOCK_BUFFER_BASE_SIZE (20 * KB)
 // Sample sequence size
-#define SAMPLE_BUFFER_BASE_SIZE (1 * MB)
+#define SAMPLE_BUFFER_BASE_SIZE (20 * MB)
 // Input buffer size for reference and sample sequences file names
 #define INPUT_BUFFER_SIZE 64
 
@@ -99,6 +100,8 @@ int limit_block_size;
 int current_block_size;
 // Reference block count
 int block_count;
+
+int max_length = 0;
 
 //
 char percentage[INT_LENGTH];
@@ -279,12 +282,16 @@ int read_reference()
             return ERROR_NON_NUCLEOBASE_FOUND;
 
         // End of block found
-        if (nucleobase == '\r')
+        //if (nucleobase == '\r')
+        if (isspace(nucleobase))
         {
             if ((nucleobase = getc(f_reference)) == '\n')
             {
                 // Save current block size
                 sequence_blocks[block_count - 1].size = current_block_size;
+
+                if (current_block_size > max_length)
+                    max_length = current_block_size;
 
                 // Delimit string with termination char
                 sequence_blocks[block_count - 1].data[current_block_size] = '\0';
@@ -298,6 +305,8 @@ int read_reference()
                 block_count++;
                 sequence_blocks = realloc(sequence_blocks, block_count * sizeof(seq_t));
                 sequence_blocks[block_count - 1].data = malloc(limit_block_size);
+
+                //printf("New %i\n", block_count);
             }
         }
         else
@@ -323,7 +332,7 @@ int read_sample()
     f_sample = fopen(input_buffer, "r");
     
     block_size_factor = INITIAL_BLOCK_SIZE_FACTOR;
-    limit_block_size = block_size_factor * BLOCK_BUFFER_BASE_SIZE;
+    limit_block_size = block_size_factor * SAMPLE_BUFFER_BASE_SIZE;
     current_block_size = INITIAL_BLOCK_SIZE;
 
     sample_block = malloc(sizeof(seq_t));
@@ -334,7 +343,7 @@ int read_sample()
         // Allocate more memory if there is not enough
         if (current_block_size == limit_block_size)
         {
-            limit_block_size = ++block_size_factor * BLOCK_BUFFER_BASE_SIZE;
+            limit_block_size = ++block_size_factor * SAMPLE_BUFFER_BASE_SIZE;
             sequence_blocks->data = realloc(sequence_blocks->data, limit_block_size);
 
             if (sequence_blocks->data == NULL)
@@ -380,7 +389,7 @@ int upload_reference()
             return ERROR_REQUEST_NOT_SENT;
 
         // Send block data
-        if (send(socket_desc, sequence_blocks[i].data, sequence_blocks[i].size, 0) < 0)
+        if (send(socket_desc, sequence_blocks[i].data, sequence_blocks[i].size + 1, 0) < 0)
             return ERROR_REQUEST_NOT_SENT;
     }
 
@@ -399,7 +408,7 @@ int upload_sample()
             return ERROR_REQUEST_NOT_SENT;
 
         // Send block data
-        if (send(socket_desc, sample_block->data, sample_block->size, 0) < 0)
+        if (send(socket_desc, sample_block->data, sample_block->size + 1, 0) < 0)
             return ERROR_REQUEST_NOT_SENT;
     }
 
@@ -431,7 +440,7 @@ int print_results()
 
     printf("El archivo cubre el %s%% del genoma de referencia\n", percentage);
     printf("%s secuencias mapeadas\n", mapped_sequences);
-    printf("%i secuencias no mapeadas\n", unmapped_sequences);
+    printf("%s secuencias no mapeadas\n", unmapped_sequences);
 
     return OK_PRINT_RESULTS;
 }
@@ -440,18 +449,33 @@ int finish()
 {
     block_count++;
 
-    close(socket_desc);
+    //close(socket_desc);
 
     for (int i = 0; i < block_count; i++)
-        free(sequence_blocks[i].data);
-    
+    {
+        // printf("Free: %i\n", i);
+        // printf("Size %i: %i\n", i, sequence_blocks[i].size);
+        //free(sequence_blocks[i].data);
+    }
+          
     free(sequence_blocks);
 
+    free(sample_block->data);
+    free(sample_block);
+
+
     if (f_reference != NULL)
-        fclose(f_reference);
+    {
+        //fclose(f_reference);
+        f_reference = NULL;
+    }
+        
 
     if (f_sample != NULL)
-        fclose(f_sample);
+    {
+        //fclose(f_sample);
+        f_sample = NULL;
+    }
 
     return OK_FINISH;
 }

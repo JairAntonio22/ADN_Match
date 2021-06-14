@@ -1,2 +1,3 @@
-Connected
-Ingresa nombre de archivo con secuencia de referencia: Ingresa nombre de archivo con secuencia muestra: Current: 11514196	Limit: 11534336
+Ingresa nombre de archivo con secuencia de referencia: Max: 0
+Ingresa nombre de archivo con secuencia muestra: Free: 0
+Size 0: 0
