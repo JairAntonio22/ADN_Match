@@ -37,9 +37,10 @@ void func(int sockfd)
             bzero(buff, SIZE);
             read(sockfd, buff, SIZE);
             num_bloques_secuencia = atoi(buff);
+			printf("Size de bloques: %i\n", num_bloques_secuencia);
             instruction++;
         }else if(instruction == 1){
-			seqs = malloc(sizeof(seq_t));
+			seqs = malloc(sizeof(seq_t) * num_bloques_secuencia) ;
             for(int i = 0; i < num_bloques_secuencia; i++){
                 bzero(buff, SIZE);
                 read(sockfd, buff, SIZE);
@@ -47,19 +48,16 @@ void func(int sockfd)
                 seqs[i].data = malloc(seqs[i].size+1);
                 //bzero(buff, seqs[i].size);
                 read(sockfd, seqs[i].data, seqs[i].size+1);
+				printf("Size: %i Data: %s\n", seqs[i].size, seqs[i].data);
             }
             instruction++;
         }else if(instruction == 2){
-            seq_t seq;
-            //char ];
             bzero(buff, SIZE);
             read(sockfd, buff, SIZE);
             genoma.size = atoi(buff);
 
-            // bzero(buff, seqs[i].size);
             read(sockfd, genoma.data, genoma.size);
-            strcpy(seq.data, buff);
-
+			printf("Size Genoma: %i Data Genoma: %s\n", genoma[i].size, genoma[i].data);
             int pos[num_bloques_secuencia];
             float percent;
 
