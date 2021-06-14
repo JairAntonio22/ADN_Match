@@ -5,19 +5,18 @@
 
 int main(void) {
 	seq_t seq = {
-		.size = 26,
-		.data = "abcdefghijklmnopqrstuvwxyz"
+		.size = 368,
+		.data = "ACAAGATGCCATTGTCCCCCGGCCTCCTGCTGCTGCTGCTCTCCGGGGCCACGGCCACCGCTGCCCTGCCCCTGGAGGGTGGCCCCACCGGCCGAGACAGCGAGCATATGCAGGAAGCGGCAGGAATAAGGAAAAGCAGCCTCCTGACTTTCCTCGCTTGGTGGTTTGAGTGGACCTCCCAGGCCAGTGCCGGGCCCCTCATAGGAGAGGAAGCTCGGGAGGTGGCCAGGCGGCAGGAAGGCGCACCCCCCCAGCAATCCGCGCGCCGGGACAGAATGCCCTGCAGGAACTTCTTCTGGAAGACCTTCTCCTCCTGCAAATAAAACCTCACCCATGAATGCTCACGCAAGTTTAATTACAGACCTGAA"
 	};
 
-	int n = 6;
+	int n = 5;
 
 	seq_t seqs[] = {
-		{.size = 10, .data = "abcdefghij"},
-		{.size = 16, .data = "defghijklmnopqrs"},
-		{.size =  5, .data = "wxyza"},
-		{.size =  4, .data = "vwxy"},
-		{.size =  3, .data = "efg"},
-		{.size =  2, .data = "mn"},
+		{.size = 23, .data = "GCCTCCTGCTGCTGCTGCTCTCC"},
+		{.size = 23, .data = "GGACCTCCCAGGCCAGTGCCGGG"},
+		{.size =  23, .data = "AAGACCTTCTCCTCCTGCAAATA"},
+		{.size =  23, .data = "TTCTTCTGGAAGACCTTCTCCTC"},
+		{.size =  44, .data = "CCAGGCGGCAGGAAGGCGCACCCCCCCAGCAATCCGTGCGCCGG"},
 	};
 
 	int pos[n];

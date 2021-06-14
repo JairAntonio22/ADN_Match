@@ -57,7 +57,7 @@ void func(int sockfd)
             genoma.size = atoi(buff);
 
             read(sockfd, genoma.data, genoma.size);
-			printf("Size Genoma: %i Data Genoma: %s\n", genoma[i].size, genoma[i].data);
+			printf("Size Genoma: %i Data Genoma: %s\n", genoma.size, genoma.data);
             int pos[num_bloques_secuencia];
             float percent;
 
