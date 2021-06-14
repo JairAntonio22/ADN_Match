@@ -365,9 +365,7 @@ int read_sample()
                 printf("n found\n");
                 break;
             }
-        }
-            
-                
+        }   
 
         // Store character
         sample_block->data[current_block_size] = nucleobase;
@@ -459,9 +457,13 @@ int print_results()
         if (recv(socket_desc, match_position, INT_LENGTH, 0) < 0)
             return ERROR_REPLY_NOT_RECEIVED;
 
-        printf("Bloque %i a partir del caracter %s", (i + 1), match_position);
+        if(strcmp(match_position, "-1") != 0)
+            printf("Bloque %i no se encontro\n", (i + 1));
+        else
+            printf("Bloque %i a partir del caracter %s\n", (i + 1), match_position);
     }    
 
+    printf("\n");
     printf("El archivo cubre el %s%% del genoma de referencia\n", percentage);
     printf("%s secuencias mapeadas\n", mapped_sequences);
     printf("%s secuencias no mapeadas\n", unmapped_sequences);
