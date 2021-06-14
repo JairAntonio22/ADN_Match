@@ -296,7 +296,8 @@ int read_reference()
 
                 // Delimit string with termination char
                 sequence_blocks[block_count - 1].data[current_block_size] = '\0';
-                //printf("%s\n", sequence_blocks[block_count - 1].data);
+                printf("Position null: %i\n", current_block_size);
+                printf("Block %i: %s\n", block_count - 1, sequence_blocks[block_count - 1].data);
 
                 // Reset block variables
                 current_block_size = INITIAL_BLOCK_SIZE;
@@ -346,9 +347,9 @@ int read_sample()
         if (current_block_size == limit_block_size)
         {
             limit_block_size = ++block_size_factor * SAMPLE_BUFFER_BASE_SIZE;
-            sequence_blocks->data = realloc(sequence_blocks->data, limit_block_size);
+            sample_block->data = realloc(sample_block->data, limit_block_size);
 
-            if (sequence_blocks->data == NULL)
+            if (sample_block->data == NULL)
                 return ERROR_MEMORY_ALLOCATION_FAILED;
         }
 
@@ -357,20 +358,32 @@ int read_sample()
             return ERROR_NON_NUCLEOBASE_FOUND;
 
         if (nucleobase == '\r')
-            if ((nucleobase = getc(f_reference)) == '\n')
+        {
+            printf("r found at %i\n", current_block_size);
+            if ((nucleobase = getc(f_sample)) == '\n')
+            {
+                printf("n found\n");
                 break;
+            }
+        }
+            
+                
 
         // Store character
-        sequence_blocks->data[current_block_size] = nucleobase;
+        sample_block->data[current_block_size] = nucleobase;
         // Update current block size
         current_block_size++;
     }
 
+    current_block_size--;
+    
     // Save sample size
     sample_block->size = current_block_size;
 
     // Delimit string with termination char
+    printf("Position null: %i\n", current_block_size);
     sample_block->data[current_block_size] = '\0';
+    printf("Sample: %s\n", sample_block->data);
     
     return OK_READ_SAMPLE;
 }
@@ -384,6 +397,8 @@ int upload_reference()
     if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
         return ERROR_REQUEST_NOT_SENT;
 
+    printf("Block count: %i\n", block_count);
+
     // Send all sequence blocks: size, then data
     for (int i = 0; i < block_count; i++)
     {
@@ -394,6 +409,7 @@ int upload_reference()
         if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
             return ERROR_REQUEST_NOT_SENT;
 
+        printf("Sequence\n");
         printf("%s\n", sequence_blocks[i].data);
 
         // Send block data
@@ -406,19 +422,19 @@ int upload_reference()
 
 int upload_sample()
 {
-    for (int i = 0; i < block_count; i++)
-    {
-        // Copy block size
-        sprintf(request_buffer, "%i", sample_block->size);
+    // Copy block size
+    sprintf(request_buffer, "%i", sample_block->size);
 
-        //Send block size
-        if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
-            return ERROR_REQUEST_NOT_SENT;
+    //Send block size
+    if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
+        return ERROR_REQUEST_NOT_SENT;
 
-        // Send block data
-        if (send(socket_desc, sample_block->data, sample_block->size + 1, 0) < 0)
-            return ERROR_REQUEST_NOT_SENT;
-    }
+    printf("Sample\n");
+    printf("%s\n", sample_block->data);
+
+    // Send block data
+    if (send(socket_desc, sample_block->data, sample_block->size + 1, 0) < 0)
+        return ERROR_REQUEST_NOT_SENT;
 
     return OK_UPLOAD_SAMPLE;
 }
