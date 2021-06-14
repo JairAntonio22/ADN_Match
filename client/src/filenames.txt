@@ -2,5 +2,5 @@ s_cerevisia-1.seq
 S._cerevisiae_processed.txt
 
 
-test.txt
-test.txt
+test_sequence.txt
+test_sample.txt

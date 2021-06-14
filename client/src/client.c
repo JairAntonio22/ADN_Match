@@ -282,11 +282,12 @@ int read_reference()
             return ERROR_NON_NUCLEOBASE_FOUND;
 
         // End of block found
+        
         //if (nucleobase == '\r')
         if (isspace(nucleobase))
         {
-            if ((nucleobase = getc(f_reference)) == '\n')
-            {
+            // if ((nucleobase = getc(f_reference)) == '\n')
+            // {
                 // Save current block size
                 sequence_blocks[block_count - 1].size = current_block_size;
 
@@ -295,6 +296,7 @@ int read_reference()
 
                 // Delimit string with termination char
                 sequence_blocks[block_count - 1].data[current_block_size] = '\0';
+                //printf("%s\n", sequence_blocks[block_count - 1].data);
 
                 // Reset block variables
                 current_block_size = INITIAL_BLOCK_SIZE;
@@ -307,7 +309,7 @@ int read_reference()
                 sequence_blocks[block_count - 1].data = malloc(limit_block_size);
 
                 //printf("New %i\n", block_count);
-            }
+            // }
         }
         else
         {
@@ -387,6 +389,8 @@ int upload_reference()
         // Send block size
         if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
             return ERROR_REQUEST_NOT_SENT;
+
+        printf("%s\n", sequence_blocks[i].data);
 
         // Send block data
         if (send(socket_desc, sequence_blocks[i].data, sequence_blocks[i].size + 1, 0) < 0)
