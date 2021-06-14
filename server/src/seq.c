@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <pthread.h>
+#include <semaphore.h>
+#include <sys/sem.h>
+
+#include <fcntl.h>
 
 #include "seq.h"
-#include "sem.h"
 
 void find_prefixes(seq_t pat, int prefixes[pat.size]) {
 	prefixes[0] = 0;
@@ -69,8 +73,8 @@ typedef struct {
 	int *result;
 	int num_results;
 	pthread_mutex_t *mutex;
-	mySem *full;
-	mySem *empty;
+	sem_t *full;
+	sem_t *empty;
 	pair_t *buffer;
 	int *size;
 } search_args_t;
@@ -80,7 +84,7 @@ void* search(void *v_args) {
 
 	*args.result = kmp_search(args.seq, args.pat);
 
-	mySem_wait(args.empty);
+	sem_wait(args.empty);
 	pthread_mutex_lock(args.mutex);
 
 	args.buffer[*args.size] = (pair_t) {
@@ -91,7 +95,7 @@ void* search(void *v_args) {
 	(*args.size)++;
 
 	pthread_mutex_unlock(args.mutex);
-	mySem_signal(args.full);
+	sem_post(args.full);
 
 	return NULL;
 }
@@ -101,8 +105,8 @@ typedef struct {
 	float *result;
 	int num_results;
 	pthread_mutex_t *mutex;
-	mySem *full;
-	mySem *empty;
+	sem_t *full;
+	sem_t *empty;
 	pair_t *buffer;
 	int *size;
 } match_args_t;
@@ -153,6 +157,24 @@ void pop_heap(pair_t heap[], int *size) {
 	}
 }
 
+float calculate_match(pair_t heap[], int size, int total_size) {
+	int match = 0;
+	int max = 0;
+
+	for (int i = 0; i < size + 1; i++) {
+		if (heap[i].pos >= max) {
+			match += heap[i].len;
+			max = heap[i].pos + heap[i].len;
+
+		} else if (heap[i].pos + heap[i].len >= max) {
+			match += (heap[i].pos + heap[i].len) - max;
+			max = heap[i].pos + heap[i].len;
+		}
+	}
+
+	return ((float) match) / ((float) total_size);
+}
+
 void* match(void *v_args) {
 	match_args_t args = *((match_args_t*) v_args);
 
@@ -163,14 +185,14 @@ void* match(void *v_args) {
 	int read_index = 0;
 
 	while (read_index < args.num_results) {
-		mySem_wait(args.full);
+		sem_wait(args.full);
 		pthread_mutex_lock(args.mutex);
 
 		pair_t entry = args.buffer[read_index];
 		read_index++;
 
 		pthread_mutex_unlock(args.mutex);
-		mySem_signal(args.empty);
+		sem_post(args.empty);
 
 		if (entry.pos >= 0) {
 			push_heap(entry, heap, &size);
@@ -183,21 +205,7 @@ void* match(void *v_args) {
 		pop_heap(heap, &tmp_size);
 	}
 
-	int match = 0;
-	int max = 0;
-
-	for (int i = 0; i < size + 1; i++) {
-		if (heap[i].pos >= max) {
-			match += heap[i].len;
-			max = heap[i].pos + heap[i].len;
-
-		} else if (heap[i].pos + heap[i].len >= max) {
-			match += (heap[i].pos + heap[i].len - 1) - max;
-			max = heap[i].pos + heap[i].len;
-		}
-	}
-
-	*args.result = ((float) match) / ((float) args.seq.size);
+	*args.result = calculate_match(heap, size, args.seq.size);
 
 	return NULL;
 }
@@ -206,11 +214,23 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 	pthread_mutex_t mutex;
 	pthread_mutex_init(&mutex, NULL);
 
-	mySem full;
-	mySem_init(&full, 0);
+    char *sem_full_name = "/my_sem_full";
+	sem_unlink(sem_full_name);
+	sem_t *full = sem_open(sem_full_name, O_CREAT, 0660, 0);
 
-	mySem empty;
-	mySem_init(&empty, n);
+    if (full == SEM_FAILED) {
+        perror("sem_open() failed");
+        exit(EXIT_FAILURE);
+    }
+
+    char *sem_empty_name = "/my_sem_empty";
+	sem_unlink(sem_empty_name);
+	sem_t *empty = sem_open(sem_empty_name, O_CREAT, 0660, n);
+
+    if (empty == SEM_FAILED) {
+        perror("sem_open() failed");
+        exit(EXIT_FAILURE);
+    }
 
 	pthread_t threads[n];
 	search_args_t search_args[n];
@@ -224,8 +244,8 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 		.result = percent,
 		.num_results = n,
 		.mutex = &mutex,
-		.full = &full,
-		.empty = &empty,
+		.full = full,
+		.empty = empty,
 		.buffer = buffer,
 		.size = &size
 	};
@@ -239,8 +259,8 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 			.result = &pos[i],
 			.num_results = n,
 			.mutex = &mutex,
-			.full = &full,
-			.empty = &empty,
+			.full = full,
+			.empty = empty,
 			.buffer = buffer,
 			.size = &size
 		};
@@ -253,4 +273,12 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 	}
 
 	pthread_join(thread, NULL);
+
+	pthread_mutex_destroy(&mutex);
+
+	sem_unlink(sem_full_name);
+	sem_close(full);
+
+	sem_unlink(sem_empty_name);
+	sem_close(empty);
 }
