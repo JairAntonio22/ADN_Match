@@ -21,12 +21,15 @@ int main(void) {
 
 	int pos[n];
 	float percent;
+	int num_map = 0;
 
-	batch_search(seqs, n, seq, pos, &percent);
+	batch_search(seqs, n, seq, pos, &percent, &num_map);
 
 	for (int i = 0; i < n; i++) {
 		printf("String %d is at position %d\n", i, pos[i]);
 	}
 
 	printf("Match percent: %2.2f%%\n", percent * 100);
+	printf("Mapped sequences: %d\n", num_map);
+	printf("Unmapped sequences: %d\n", n - num_map);
 }

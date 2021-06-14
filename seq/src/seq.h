@@ -6,6 +6,6 @@ typedef struct {
 	char *data;
 } seq_t;
 
-void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *match);
+void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *match, int *num_map);
 
 #endif
