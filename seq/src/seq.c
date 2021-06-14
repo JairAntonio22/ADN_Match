@@ -5,6 +5,8 @@
 #include <semaphore.h>
 #include <sys/sem.h>
 
+#include <fcntl.h>
+
 #include "seq.h"
 
 void find_prefixes(seq_t pat, int prefixes[pat.size]) {
@@ -165,7 +167,7 @@ float calculate_match(pair_t heap[], int size, int total_size) {
 			max = heap[i].pos + heap[i].len;
 
 		} else if (heap[i].pos + heap[i].len >= max) {
-			match += (heap[i].pos + heap[i].len - 1) - max;
+			match += (heap[i].pos + heap[i].len) - max;
 			max = heap[i].pos + heap[i].len;
 		}
 	}
@@ -212,11 +214,23 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 	pthread_mutex_t mutex;
 	pthread_mutex_init(&mutex, NULL);
 
-	sem_unlink("full");
-	sem_t *full = sem_open("full", IPC_CREAT, 0660, 0);
+    char *sem_full_name = "/my_sem_full";
+	sem_unlink(sem_full_name);
+	sem_t *full = sem_open(sem_full_name, O_CREAT, 0660, 0);
 
-	sem_unlink("empty");
-	sem_t *empty = sem_open("empty", IPC_CREAT, 0660, n);
+    if (full == SEM_FAILED) {
+        perror("sem_open() failed");
+        exit(EXIT_FAILURE);
+    }
+
+    char *sem_empty_name = "/my_sem_empty";
+	sem_unlink(sem_empty_name);
+	sem_t *empty = sem_open(sem_empty_name, O_CREAT, 0660, n);
+
+    if (empty == SEM_FAILED) {
+        perror("sem_open() failed");
+        exit(EXIT_FAILURE);
+    }
 
 	pthread_t threads[n];
 	search_args_t search_args[n];
@@ -261,6 +275,10 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 	pthread_join(thread, NULL);
 
 	pthread_mutex_destroy(&mutex);
+
+	sem_unlink(sem_full_name);
 	sem_close(full);
+
+	sem_unlink(sem_empty_name);
 	sem_close(empty);
 }

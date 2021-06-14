@@ -1,6 +1,5 @@
-
 CC=gcc
-CFLAGS=-g -Wall
+CFLAGS=-pthread -Wall -Wextra -g
 
 SRC=src
 SRCS=$(wildcard $(SRC)/*.c)
@@ -8,7 +7,7 @@ SRCS=$(wildcard $(SRC)/*.c)
 OBJ=obj
 OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
-TARGET=myDBServerDaemonChido
+TARGET=server
 
 all:$(TARGET)
 
