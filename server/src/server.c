@@ -22,6 +22,7 @@ void func(int sockfd)
     int instruction = 0;
     int num_bloques_secuencia = 0;
     char buff[SIZE];
+    int num_map =0;
 	
 
 	seq_t *seqs;
@@ -71,6 +72,17 @@ void func(int sockfd)
 				}
 
 				printf("Match percent: %2.2f%%\n", percent * 100);
+                //copiar porcentaje al buffer y mandar
+                sprintf(buff, "%2.2f", percent*100);
+                send(sockfd, buff, SIZE, percent*100);
+
+                //copiar secuencias mapeadas y mandar
+                sprintf(buff, "%d", num_bloques_secuencia);
+                send(sockfd, buff, SIZE, num_bloques_secuencia);
+
+                //copiar secuencias no mapeadas y mandar 
+                //sprintf(buff, "%d", );
+                //send(sockfd, );
 
 			} else {
 				printf("Genoma no recibido\n");
