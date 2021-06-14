@@ -64,7 +64,7 @@ void func(int sockfd)
             batch_search(seqs, num_bloques_secuencia, genoma, pos, &percent);
 
             for (int i = 0; i < num_bloques_secuencia; i++) {
-                printf("String %d is at position %d\n", i, pos[i]);
+                printf("String %s is at position %d\n", seqs[i].data, pos[i]);
             }
 
             printf("Match percent: %2.2f%%\n", percent * 100);

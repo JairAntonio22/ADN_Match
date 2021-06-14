@@ -283,11 +283,11 @@ int read_reference()
 
         // End of block found
         
-        //if (nucleobase == '\r')
-        if (isspace(nucleobase))
+        //if (isspace(nucleobase))
+        if (nucleobase == '\r')
         {
-            // if ((nucleobase = getc(f_reference)) == '\n')
-            // {
+            if ((nucleobase = getc(f_reference)) == '\n')
+            {
                 // Save current block size
                 sequence_blocks[block_count - 1].size = current_block_size;
 
@@ -309,7 +309,7 @@ int read_reference()
                 sequence_blocks[block_count - 1].data = malloc(limit_block_size);
 
                 //printf("New %i\n", block_count);
-            // }
+            }
         }
         else
         {
@@ -355,6 +355,10 @@ int read_sample()
         // Check if character is a nucleobase
         if (is_nucleobase(nucleobase) == false && nucleobase != '\r' && nucleobase != '\n')
             return ERROR_NON_NUCLEOBASE_FOUND;
+
+        if (nucleobase == '\r')
+            if ((nucleobase = getc(f_reference)) == '\n')
+                break;
 
         // Store character
         sequence_blocks->data[current_block_size] = nucleobase;
