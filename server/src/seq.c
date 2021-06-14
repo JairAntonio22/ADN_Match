@@ -72,6 +72,7 @@ typedef struct {
 	seq_t pat;
 	int *result;
 	int num_results;
+	int *num_map;
 	pthread_mutex_t *mutex;
 	sem_t *full;
 	sem_t *empty;
@@ -93,6 +94,10 @@ void* search(void *v_args) {
 	};
 
 	(*args.size)++;
+
+	if (*args.result != -1) {
+		(*args.num_map)++;
+	}
 
 	pthread_mutex_unlock(args.mutex);
 	sem_post(args.full);
@@ -210,7 +215,7 @@ void* match(void *v_args) {
 	return NULL;
 }
 
-void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
+void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent, int *num_map) {
 	pthread_mutex_t mutex;
 	pthread_mutex_init(&mutex, NULL);
 
@@ -258,6 +263,7 @@ void batch_search(seq_t seqs[], int n, seq_t seq, int pos[], float *percent) {
 			.pat = seqs[i],
 			.result = &pos[i],
 			.num_results = n,
+			.num_map = num_map,
 			.mutex = &mutex,
 			.full = full,
 			.empty = empty,
