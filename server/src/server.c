@@ -50,15 +50,15 @@ void func(int sockfd)
             }
             instruction++;
         }else if(instruction == 2){
-            seq_t seq;
             //char ];
             bzero(buff, SIZE);
             read(sockfd, buff, SIZE);
             genoma.size = atoi(buff);
 
             // bzero(buff, seqs[i].size);
-            read(sockfd, genoma.data, genoma.size);
-            strcpy(seq.data, buff);
+            genoma.data = malloc(genoma.size + 1);
+            read(sockfd, genoma.data, genoma.size + 1);
+            // strcpy(seq.data, buff);
 
             int pos[num_bloques_secuencia];
             float percent;
@@ -66,7 +66,7 @@ void func(int sockfd)
             batch_search(seqs, num_bloques_secuencia, genoma, pos, &percent);
 
             for (int i = 0; i < num_bloques_secuencia; i++) {
-                printf("String %d is at position %d\n", i, pos[i]);
+                printf("String %s is at position %d\n", seqs[i].data, pos[i]);
             }
 
             printf("Match percent: %2.2f%%\n", percent * 100);
