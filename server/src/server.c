@@ -28,46 +28,53 @@ void func(int sockfd)
 	seq_t genoma;
 
     // infinite loop for chat
-
-	printf("Vamoa escuchar al cliente\n");
 	
     for (;;) {
         if(instruction == 0){
-
+			printf("Leyendo numero de bloques\n");
             bzero(buff, SIZE);
             read(sockfd, buff, SIZE);
             num_bloques_secuencia = atoi(buff);
 			printf("Size de bloques: %i\n", num_bloques_secuencia);
             instruction++;
+
         }else if(instruction == 1){
+			printf("Leyendo secuencias\n");
 			seqs = malloc(sizeof(seq_t) * num_bloques_secuencia) ;
             for(int i = 0; i < num_bloques_secuencia; i++){
                 bzero(buff, SIZE);
                 read(sockfd, buff, SIZE);
                 seqs[i].size = atoi(buff);
                 seqs[i].data = malloc(seqs[i].size+1);
-                //bzero(buff, seqs[i].size);
                 read(sockfd, seqs[i].data, seqs[i].size+1);
 				printf("Size: %i Data: %s\n", seqs[i].size, seqs[i].data);
             }
             instruction++;
         }else if(instruction == 2){
+			printf("Leyendo genoma\n");
             bzero(buff, SIZE);
             read(sockfd, buff, SIZE);
             genoma.size = atoi(buff);
 
-            read(sockfd, genoma.data, genoma.size);
+			genoma.data = malloc(sizeof(char) * genoma.size + 1);
+            read(sockfd, genoma.data, genoma.size + 1);
 			printf("Size Genoma: %i Data Genoma: %s\n", genoma.size, genoma.data);
-            int pos[num_bloques_secuencia];
-            float percent;
 
-            batch_search(seqs, num_bloques_secuencia, genoma, pos, &percent);
+			if (genoma.data != NULL) {
+				int pos[num_bloques_secuencia];
+				float percent;
 
-            for (int i = 0; i < num_bloques_secuencia; i++) {
-                printf("String %s is at position %d\n", seqs[i].data, pos[i]);
-            }
+				batch_search(seqs, num_bloques_secuencia, genoma, pos, &percent);
 
-            printf("Match percent: %2.2f%%\n", percent * 100);
+				for (int i = 0; i < num_bloques_secuencia; i++) {
+					printf("String %s is at position %d\n", seqs[i].data, pos[i]);
+				}
+
+				printf("Match percent: %2.2f%%\n", percent * 100);
+
+			} else {
+				printf("Genoma no recibido\n");
+			}
 
             instruction++;
         }else{
@@ -85,7 +92,6 @@ int main()
     int sockfd, connfd;
     unsigned int len;
     struct sockaddr_in servaddr, cli;
-    printf("aAAAAAAAAAAAAAAAAAAAAAAAA");
 
     //starting daemonize
     //printf("Starting daemonize\n");

@@ -1,3 +1,4 @@
+/*
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -20,3 +21,4 @@ int main()
     fclose(sample);
     fclose(sequence);
 }
+*/
