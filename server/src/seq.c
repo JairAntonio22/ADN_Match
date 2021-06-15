@@ -122,58 +122,37 @@ void swap(pair_t *p1, pair_t *p2) {
 	*p2 = tmp;
 }
 
-void push_heap(pair_t value, pair_t heap[], int *size) {
-	(*size)++;
-	heap[*size] = value;
+void bubble_sort(pair_t *data, int size) {
+	bool sorted = true;
 
-	bool exit = false;
-	int i = *size;
+	for (int i = 0; i < size - 1; i++) {
+		sorted = true;
 
-	while (!exit) {
-		if (i > 1 && heap[i].pos > heap[i / 2].pos) {
-			swap(&heap[i], &heap[i / 2]);
-			i /= 2;
+		for (int j = i + 1; j < size; j++) {
+			if (data[i].pos > data[j].pos) {
+				swap(&data[i], &data[j]);
+				sorted = false;
+			}
+		}
 
-		} else {
-			exit = true;
+		if (sorted) {
+			break;
 		}
 	}
 }
 
-void pop_heap(pair_t heap[], int *size) {
-	swap(&heap[1], &heap[*size]);
-	(*size)--;
-
-	bool exit = false;
-	int i = 1;
-
-	while (!exit) {
-		if (2 * i <= *size && heap[i].pos < heap[2 * i].pos) {
-			swap(&heap[i], &heap[2 * i]);
-			i *= 2;
-
-		} else if (2 * i + 1 <= *size && heap[i].pos < heap[2 * i + 1].pos) {
-			swap(&heap[i], &heap[2 * i + 1]);
-			i = 2 * i + 1;
-
-		} else {
-			exit = true;
-		}
-	}
-}
-
-float calculate_match(pair_t heap[], int size, int total_size) {
+float calculate_match(pair_t data[], int size, int total_size) {
 	int match = 0;
 	int max = 0;
 
-	for (int i = 0; i < size + 1; i++) {
-		if (heap[i].pos >= max) {
-			match += heap[i].len;
-			max = heap[i].pos + heap[i].len;
+	for (int i = 0; i < size - 1; i++) {
+		if (data[i].pos >= max) {
+			match += data[i].len;
+			max = data[i].pos + data[i].len;
 
-		} else if (heap[i].pos + heap[i].len >= max) {
-			match += (heap[i].pos + heap[i].len) - max;
-			max = heap[i].pos + heap[i].len;
+		} else if (data[i].pos + data[i].len >= max) {
+			match += (data[i].pos + data[i].len) - max;
+			max = data[i].pos + data[i].len;
 		}
 	}
 
@@ -183,8 +162,7 @@ float calculate_match(pair_t heap[], int size, int total_size) {
 void* match(void *v_args) {
 	match_args_t args = *((match_args_t*) v_args);
 
-	pair_t heap[args.num_results + 1];
-	heap[0] = (pair_t) {-1, -1};
+	pair_t data[args.num_results + 1];
 	int size = 0;
 
 	int read_index = 0;
@@ -196,21 +174,18 @@ void* match(void *v_args) {
 		pair_t entry = args.buffer[read_index];
 		read_index++;
 
+		if (entry.pos != -1) {
+			data[size] = entry;
+			size++;
+		}
+
 		pthread_mutex_unlock(args.mutex);
 		sem_post(args.empty);
-
-		if (entry.pos >= 0) {
-			push_heap(entry, heap, &size);
-		}
 	}
 
-	int tmp_size = size;
+	bubble_sort(data, size);
 
-	while (tmp_size != 0) {
-		pop_heap(heap, &tmp_size);
-	}
-
-	*args.result = calculate_match(heap, size, args.seq.size);
+	*args.result = calculate_match(data, size, args.seq.size);
 
 	return NULL;
 }

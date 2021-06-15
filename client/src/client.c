@@ -173,9 +173,9 @@ int print_results()
             return ERROR_REPLY_NOT_RECEIVED;
 
         if(strcmp(match_position, "-1") == 0)
-            printf("Bloque %i no se encontro\n", (i + 1));
+            printf("Bloque %4i no se encontro\n", (i + 1));
         else
-            printf("Bloque %i a partir del caracter %s\n", (i + 1), match_position);
+            printf("Bloque %4i a partir del caracter %10s\n", (i + 1), match_position);
     }    
 
     printf("\n");

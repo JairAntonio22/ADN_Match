@@ -98,7 +98,6 @@ bool is_nucleobase(char c)
 }
 
 seq_t* read_reference(char *filename) {
-    printf("Filename: %s", filename);
 
     // Open file with given name
     FILE *f_reference = fopen(filename, "r");
@@ -150,7 +149,7 @@ seq_t* read_reference(char *filename) {
 
                 // Create new block
                 block_count++;
-                printf("Block count: %i\n", block_count);
+                //printf("Block count: %i\n", block_count);
                 sequence_blocks = realloc(sequence_blocks, block_count * sizeof(seq_t));
                 sequence_blocks[block_count - 1].data = malloc(limit_block_size);
             }
@@ -236,27 +235,16 @@ void func(int sockfd)
         read(sockfd, buff, 80);
         seq_t *seqs = read_reference(buff);
 
-        printf("y a se leyo seqs\n");
-
         //Leer sequences
         //printf("Leyendo sequences\n");
         bzero(buff, 80);
         read(sockfd, buff, 80);
         seq_t *seq = read_sample(buff);
-        
-        printf("ya se leyo seq\n");
-
 
         int pos[block_count];
-        printf("seqs: %d, block count: %d, seq: %d, nummap:%d\n",seqs[0].size, block_count, seq[0].size, num_map);
+
         batch_search(seqs, block_count, *seq, pos, &percent, &num_map);
-        printf("se acaba de hacer el batch search aaaaaaaaaaaaaaaaa");
-        printf("seqs: %d, block count: %d, seq: %d, percent: %f, nummap:%d\n", seqs[0].size, block_count, seq[0].size, percent, num_map);
-       	// for (int i = 0; i < num_bloques_secuencia; i++) {
-        // 	printf("String  is at position %d\n", pos[i]);
-        // }
-        
-        printf("Match percent: %2.2f%%\n", percent * 100);
+       	
         //copiar porcentaje al buffer y mandar
         sprintf(buff, "%2.2f", percent*100);
         send(sockfd, buff, SIZE, 0);
@@ -269,83 +257,14 @@ void func(int sockfd)
         sprintf(buff, "%d", block_count-num_map);
         send(sockfd, buff, SIZE, 0);
 
+        sprintf(buff, "%d", block_count);
+        send(sockfd, buff, SIZE, 0);
+
         //copiar y mandar las posiciones de las secuencias
         for(int i = 0; i < block_count; i++){
             sprintf(buff, "%d", pos[i]);
             send(sockfd, buff, SIZE, 0);
         }
-        /*if(instruction == 0){
-			printf("Leyendo numero de bloques\n");
-            bzero(buff, SIZE);
-            read(sockfd, buff, SIZE);
-            num_bloques_secuencia = atoi(buff);
-			printf("Size de bloques: %i\n", num_bloques_secuencia);
-            instruction++;
-
-        }else if(instruction == 1){
-			printf("Leyendo secuencias\n");
-			seqs = malloc(sizeof(seq_t) * num_bloques_secuencia) ;
-            for(int i = 0; i < num_bloques_secuencia; i++){
-                bzero(buff, SIZE);
-                //Leer tamaño del bloque
-                read(sockfd, buff, SIZE);
-                seqs[i].size = atoi(buff);
-                //Leer numero de paquetes
-                read(sockfd, buff, SIZE);
-                seqs[i].numero_paquetes = atoi(buff);
-            }
-            
-
-            //printf("%s tam %d\n", seqs[0].data, seqs[0].size);
-            instruction++;
-        }else if(instruction == 3){
-			printf("Leyendo genoma\n");
-            bzero(buff, SIZE);
-            read(sockfd, buff, SIZE);
-            genoma.size = atoi(buff);
-
-			genoma.data = malloc(sizeof(char) * genoma.size + 1);
-            read(sockfd, genoma.data, genoma.size + 1);
-			printf("Size Genoma: %i Data Genoma: \n", genoma.size);
-
-			if (genoma.data != NULL) {
-				int pos[num_bloques_secuencia];
-				float percent;
-
-				batch_search(seqs, num_bloques_secuencia, genoma, pos, &percent, &num_map);
-
-				// for (int i = 0; i < num_bloques_secuencia; i++) {
-				// 	printf("String  is at position %d\n", pos[i]);
-				// }
-
-				printf("Match percent: %2.2f%%\n", percent * 100);
-                //copiar porcentaje al buffer y mandar
-                sprintf(buff, "%2.2f", percent*100);
-                send(sockfd, buff, SIZE, 0);
-
-                //copiar secuencias mapeadas y mandar
-                sprintf(buff, "%d", num_map);
-                send(sockfd, buff, SIZE, 0);
-
-                //copiar secuencias no mapeadas y mandar 
-                sprintf(buff, "%d", num_bloques_secuencia-num_map);
-                send(sockfd, buff, SIZE, 0);
-
-                //copiar y mandar las posiciones de las secuencias
-                for(int i = 0; i < num_bloques_secuencia; i++){
-                    sprintf(buff, "%d", pos[i]);
-                    send(sockfd, buff, SIZE, 0);
-                }
-
-			} else {
-				printf("Genoma no recibido\n");
-			}
-
-            instruction++;
-        }else{
-            fprintf(fp, "Server Exit...\n");
-            break;
-        }*/
     }
 }
 
@@ -355,10 +274,6 @@ int main()
     int sockfd, connfd;
     unsigned int len;
     struct sockaddr_in servaddr, cli;
-
-    //starting daemonize
-    //printf("Starting daemonize\n");
-    //daemonize();
 
     fp = fopen ("Log.txt", "w+");
 
@@ -408,8 +323,6 @@ int main()
             close(connfd);
         }
     }
-    // /fclose(fp);
-    // syslog (LOG_NOTICE, "First daemon terminated.");
-    // closelog();/
+
     return EXIT_SUCCESS;
 }
