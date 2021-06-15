@@ -296,8 +296,6 @@ int read_reference()
 
                 // Delimit string with termination char
                 sequence_blocks[block_count - 1].data[current_block_size] = '\0';
-                printf("Position null: %i\n", current_block_size);
-                printf("Block %i: %s\n", block_count - 1, sequence_blocks[block_count - 1].data);
 
                 // Reset block variables
                 current_block_size = INITIAL_BLOCK_SIZE;
@@ -308,8 +306,6 @@ int read_reference()
                 block_count++;
                 sequence_blocks = realloc(sequence_blocks, block_count * sizeof(seq_t));
                 sequence_blocks[block_count - 1].data = malloc(limit_block_size);
-
-                //printf("New %i\n", block_count);
             }
         }
         else
@@ -358,14 +354,8 @@ int read_sample()
             return ERROR_NON_NUCLEOBASE_FOUND;
 
         if (nucleobase == '\r')
-        {
-            printf("r found at %i\n", current_block_size);
             if ((nucleobase = getc(f_sample)) == '\n')
-            {
-                printf("n found\n");
                 break;
-            }
-        }   
 
         // Store character
         sample_block->data[current_block_size] = nucleobase;
@@ -379,9 +369,7 @@ int read_sample()
     sample_block->size = current_block_size;
 
     // Delimit string with termination char
-    printf("Position null: %i\n", current_block_size);
     sample_block->data[current_block_size] = '\0';
-    printf("Sample: %s\n", sample_block->data);
     
     return OK_READ_SAMPLE;
 }
@@ -395,8 +383,6 @@ int upload_reference()
     if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
         return ERROR_REQUEST_NOT_SENT;
 
-    printf("Block count: %i\n", block_count);
-
     // Send all sequence blocks: size, then data
     for (int i = 0; i < block_count; i++)
     {
@@ -406,9 +392,6 @@ int upload_reference()
         // Send block size
         if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
             return ERROR_REQUEST_NOT_SENT;
-
-        printf("Sequence\n");
-        printf("%s\n", sequence_blocks[i].data);
 
         // Send block data
         if (send(socket_desc, sequence_blocks[i].data, sequence_blocks[i].size + 1, 0) < 0)
@@ -426,9 +409,6 @@ int upload_sample()
     //Send block size
     if (send(socket_desc, request_buffer, INT_LENGTH, 0) < 0)
         return ERROR_REQUEST_NOT_SENT;
-
-    printf("Sample\n");
-    printf("%s\n", sample_block->data);
 
     // Send block data
     if (send(socket_desc, sample_block->data, sample_block->size + 1, 0) < 0)
