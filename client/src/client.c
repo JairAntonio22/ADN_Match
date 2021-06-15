@@ -437,7 +437,7 @@ int print_results()
         if (recv(socket_desc, match_position, INT_LENGTH, 0) < 0)
             return ERROR_REPLY_NOT_RECEIVED;
 
-        if(strcmp(match_position, "-1") != 0)
+        if(strcmp(match_position, "-1") == 0)
             printf("Bloque %i no se encontro\n", (i + 1));
         else
             printf("Bloque %i a partir del caracter %s\n", (i + 1), match_position);

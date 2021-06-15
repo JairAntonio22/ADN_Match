@@ -23,7 +23,6 @@ void func(int sockfd)
     int num_bloques_secuencia = 0;
     char buff[SIZE];
     int num_map =0;
-	
 
 	seq_t *seqs;
 	seq_t genoma;
@@ -65,7 +64,7 @@ void func(int sockfd)
 				int pos[num_bloques_secuencia];
 				float percent;
 
-				batch_search(seqs, num_bloques_secuencia, genoma, pos, &percent);
+				batch_search(seqs, num_bloques_secuencia, genoma, pos, &percent, &num_map);
 
 				for (int i = 0; i < num_bloques_secuencia; i++) {
 					printf("String %s is at position %d\n", seqs[i].data, pos[i]);
@@ -74,15 +73,21 @@ void func(int sockfd)
 				printf("Match percent: %2.2f%%\n", percent * 100);
                 //copiar porcentaje al buffer y mandar
                 sprintf(buff, "%2.2f", percent*100);
-                send(sockfd, buff, SIZE, percent*100);
+                send(sockfd, buff, SIZE, 0);
 
                 //copiar secuencias mapeadas y mandar
-                sprintf(buff, "%d", num_bloques_secuencia);
-                send(sockfd, buff, SIZE, num_bloques_secuencia);
+                sprintf(buff, "%d", num_map);
+                send(sockfd, buff, SIZE, 0);
 
                 //copiar secuencias no mapeadas y mandar 
-                //sprintf(buff, "%d", );
-                //send(sockfd, );
+                sprintf(buff, "%d", num_bloques_secuencia-num_map);
+                send(sockfd, buff, SIZE, 0);
+
+                //copiar y mandar las posiciones de las secuencias
+                for(int i = 0; i < num_bloques_secuencia; i++){
+                    sprintf(buff, "%d", pos[i]);
+                    send(sockfd, buff, SIZE, 0);
+                }
 
 			} else {
 				printf("Genoma no recibido\n");
