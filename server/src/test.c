@@ -1,20 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/stat.h>
-#include <syslog.h>
+
 #include "seq.h"
-#define SIZE 12
+
 #define PORT 3000
-#define SA struct sockaddr
-#define PORT 3000
+
 #define OK_INIT 0
 #define OK_READ_REFERENCE 0
 #define OK_READ_SAMPLE 0
@@ -223,193 +214,25 @@ seq_t* read_sample(char *filename) {
 
     return sample_block;
 }
-FILE *fp;
-// Function designed for chat between client and server.
-void func(int sockfd)
-{
-    //int instruction = 0;
-    //int num_bloques_secuencia = 0;
-    char buff[80];
-    int num_map = 0;
-    float percent;
 
-	/*seq_t *seqs;
-	seq_t genoma;*/
+int main(void) {
+	seq_t *seq = read_sample("S._cerevisiae_processed.txt");
 
-    // infinite loop for chat
-    for (;;) {
-        //Leer sample
-        printf("Leyendo sample\n");
-        bzero(buff, 80);
-        read(sockfd, buff, 80);
-        seq_t *seq = read_sample(buff);
-        free(buff);
-        //Leer sequences
-        printf("Leyendo sequences\n");
-        bzero(buff, 80);
-        read(sockfd, buff, 80);
-        seq_t *seqs = read_reference(buff);
-        
-        int pos[block_count];
-        batch_search(seqs, block_count, *seq, pos, &percent, &num_map);
-       	// for (int i = 0; i < num_bloques_secuencia; i++) {
-        // 	printf("String  is at position %d\n", pos[i]);
-        // }
+	int n = 1000;
 
-        printf("Match percent: %2.2f%%\n", percent * 100);
-        //copiar porcentaje al buffer y mandar
-        sprintf(buff, "%2.2f", percent*100);
-        send(sockfd, buff, SIZE, 0);
+	seq_t *seqs = read_reference("s_cerevisia-1.seq");
 
-        //copiar secuencias mapeadas y mandar
-        sprintf(buff, "%d", num_map);
-        send(sockfd, buff, SIZE, 0);
+	int pos[n];
+	float percent;
+	int num_map = 0;
 
-        //copiar secuencias no mapeadas y mandar 
-        sprintf(buff, "%d", block_count-num_map);
-        send(sockfd, buff, SIZE, 0);
+	batch_search(seqs, n, *seq, pos, &percent, &num_map);
 
-        //copiar y mandar las posiciones de las secuencias
-        for(int i = 0; i < block_count; i++){
-            sprintf(buff, "%d", pos[i]);
-            send(sockfd, buff, SIZE, 0);
-        }
-        /*if(instruction == 0){
-			printf("Leyendo numero de bloques\n");
-            bzero(buff, SIZE);
-            read(sockfd, buff, SIZE);
-            num_bloques_secuencia = atoi(buff);
-			printf("Size de bloques: %i\n", num_bloques_secuencia);
-            instruction++;
+	for (int i = 0; i < n; i++) {
+		printf("String %d is at position %10d, %10d\n, length:", i, pos[i], seq[i].size);
+	}
 
-        }else if(instruction == 1){
-			printf("Leyendo secuencias\n");
-			seqs = malloc(sizeof(seq_t) * num_bloques_secuencia) ;
-            for(int i = 0; i < num_bloques_secuencia; i++){
-                bzero(buff, SIZE);
-                //Leer tamaño del bloque
-                read(sockfd, buff, SIZE);
-                seqs[i].size = atoi(buff);
-                //Leer numero de paquetes
-                read(sockfd, buff, SIZE);
-                seqs[i].numero_paquetes = atoi(buff);
-            }
-            
-
-            //printf("%s tam %d\n", seqs[0].data, seqs[0].size);
-            instruction++;
-        }else if(instruction == 3){
-			printf("Leyendo genoma\n");
-            bzero(buff, SIZE);
-            read(sockfd, buff, SIZE);
-            genoma.size = atoi(buff);
-
-			genoma.data = malloc(sizeof(char) * genoma.size + 1);
-            read(sockfd, genoma.data, genoma.size + 1);
-			printf("Size Genoma: %i Data Genoma: \n", genoma.size);
-
-			if (genoma.data != NULL) {
-				int pos[num_bloques_secuencia];
-				float percent;
-
-				batch_search(seqs, num_bloques_secuencia, genoma, pos, &percent, &num_map);
-
-				// for (int i = 0; i < num_bloques_secuencia; i++) {
-				// 	printf("String  is at position %d\n", pos[i]);
-				// }
-
-				printf("Match percent: %2.2f%%\n", percent * 100);
-                //copiar porcentaje al buffer y mandar
-                sprintf(buff, "%2.2f", percent*100);
-                send(sockfd, buff, SIZE, 0);
-
-                //copiar secuencias mapeadas y mandar
-                sprintf(buff, "%d", num_map);
-                send(sockfd, buff, SIZE, 0);
-
-                //copiar secuencias no mapeadas y mandar 
-                sprintf(buff, "%d", num_bloques_secuencia-num_map);
-                send(sockfd, buff, SIZE, 0);
-
-                //copiar y mandar las posiciones de las secuencias
-                for(int i = 0; i < num_bloques_secuencia; i++){
-                    sprintf(buff, "%d", pos[i]);
-                    send(sockfd, buff, SIZE, 0);
-                }
-
-			} else {
-				printf("Genoma no recibido\n");
-			}
-
-            instruction++;
-        }else{
-            fprintf(fp, "Server Exit...\n");
-            break;
-        }*/
-    }
-}
-
-// Driver function
-int main()
-{
-    int sockfd, connfd;
-    unsigned int len;
-    struct sockaddr_in servaddr, cli;
-
-    //starting daemonize
-    //printf("Starting daemonize\n");
-    //daemonize();
-
-    fp = fopen ("Log.txt", "w+");
-
-    // socket create and verification
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1) {
-        fprintf(fp, "socket creation failed...\n");
-        exit(0);
-    }
-    else
-        fprintf(fp, "Socket successfully created..\n");
-    bzero(&servaddr, sizeof(servaddr));
-
-    // assign IP, PORT
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servaddr.sin_port = htons(PORT);
-
-    // Binding newly created socket to given IP and verification
-    if ((bind(sockfd, (SA *)&servaddr, sizeof(servaddr))) != 0) {
-        fprintf(fp, "socket bind failed...\n");
-        exit(0);
-    }
-    else
-        fprintf(fp, "Socket successfully binded..\n");
-
-    // Now server is ready to listen and verification
-    if ((listen(sockfd, 5)) != 0) {
-        fprintf(fp, "Listen failed...\n");
-        exit(0);
-    }
-    else
-        fprintf(fp, "Server listening..\n");
-    len = sizeof(cli);
-
-    while(1){
-    // Accept the data packet from client and verification
-    connfd = accept(sockfd, (SA *)&cli, &len);
-    if (connfd < 0) {
-        fprintf(fp, "server acccept failed...\n");
-        exit(0);
-        }
-    else{
-            fprintf(fp, "server acccept the client...\n");
-            // Function for chatting between client and server
-            func(connfd);
-            close(connfd);
-        }
-    }
-    // /fclose(fp);
-    // syslog (LOG_NOTICE, "First daemon terminated.");
-    // closelog();/
-    return EXIT_SUCCESS;
+	printf("Match percent: %2.2f%%\n", percent * 100);
+	printf("Mapped sequences: %d\n", num_map);
+	printf("Unmapped sequences: %d\n", n - num_map);
 }
