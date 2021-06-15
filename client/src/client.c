@@ -317,6 +317,7 @@ int read_reference()
         }
     }
 
+    //printf("%s tam %d\n", sequence_blocks[0].data, sequence_blocks[0].size);
     block_count--;
 
     return OK_READ_REFERENCE;

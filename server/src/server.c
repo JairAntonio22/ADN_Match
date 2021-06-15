@@ -47,8 +47,11 @@ void func(int sockfd)
                 seqs[i].size = atoi(buff);
                 seqs[i].data = malloc(seqs[i].size+1);
                 read(sockfd, seqs[i].data, seqs[i].size+1);
-				printf("Size: %i Data: %s\n", seqs[i].size, seqs[i].data);
+				//printf("Size: %i Data: %s\n", seqs[i].size, seqs[i].data);
+                //printf("Cant de secuencias %d\n", seqs[i].size);
             }
+
+            //printf("%s tam %d\n", seqs[0].data, seqs[0].size);
             instruction++;
         }else if(instruction == 2){
 			printf("Leyendo genoma\n");
@@ -58,7 +61,7 @@ void func(int sockfd)
 
 			genoma.data = malloc(sizeof(char) * genoma.size + 1);
             read(sockfd, genoma.data, genoma.size + 1);
-			printf("Size Genoma: %i Data Genoma: %s\n", genoma.size, genoma.data);
+			printf("Size Genoma: %i Data Genoma: \n", genoma.size);
 
 			if (genoma.data != NULL) {
 				int pos[num_bloques_secuencia];
@@ -66,9 +69,9 @@ void func(int sockfd)
 
 				batch_search(seqs, num_bloques_secuencia, genoma, pos, &percent, &num_map);
 
-				for (int i = 0; i < num_bloques_secuencia; i++) {
-					printf("String %s is at position %d\n", seqs[i].data, pos[i]);
-				}
+				// for (int i = 0; i < num_bloques_secuencia; i++) {
+				// 	printf("String  is at position %d\n", pos[i]);
+				// }
 
 				printf("Match percent: %2.2f%%\n", percent * 100);
                 //copiar porcentaje al buffer y mandar
@@ -99,7 +102,7 @@ void func(int sockfd)
             break;
         }
         //bzero(buff, MAX);
-        fprintf(fp, "--------------------------------------------\n");
+       // fprintf(fp, "--------------------------------------------\n");
     }
 }
 
