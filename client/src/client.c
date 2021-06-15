@@ -39,6 +39,7 @@
 // Buffer sizes
 // Menu selection size
 #define SELECTION_BUFFER_SIZE 1
+#define PACKET_BUFFER_SIZE (20 * KB)
 // Reference sequence size
 #define BLOCK_BUFFER_BASE_SIZE (20 * KB)
 // Sample sequence size
@@ -53,6 +54,7 @@
 
 // Deault variable values
 #define INITIAL_BLOCK_COUNT 1
+#define INITIAL_PACKET_COUNT 1
 #define INITIAL_BLOCK_SIZE 0
 #define INITIAL_BLOCK_SIZE_FACTOR 1
 
@@ -98,8 +100,6 @@ int block_size_factor;
 int limit_block_size;
 // Reference and sample block lengths
 int current_block_size;
-// Reference block count
-int block_count;
 
 int max_length = 0;
 
@@ -254,26 +254,47 @@ int read_reference()
     if (f_reference == NULL)
         return ERROR_FILE_OTHER;
 
-    // Initialize variables
-    block_count = INITIAL_BLOCK_COUNT;
     block_size_factor = INITIAL_BLOCK_SIZE_FACTOR;
     limit_block_size = block_size_factor * BLOCK_BUFFER_BASE_SIZE;
     current_block_size = INITIAL_BLOCK_SIZE;
+
+    // Reference block count
+    int block_count = INITIAL_BLOCK_COUNT;
+    // Block packet count
+    int packet_count = INITIAL_PACKET_COUNT;
+    int current_packet_size = 0;
     
     // Create first block    
-    sequence_blocks = malloc(sizeof(seq_t));
-    sequence_blocks[block_count - 1].data = malloc(limit_block_size);
+    sequence_blocks = malloc(packet_count * sizeof(seq_t));
+    // Initialize number of packets
+    sequence_blocks[block_count - 1].no_packets = 0;
+    // Create first packet
+    sequence_blocks[block_count - 1].packets = malloc(sizeof(packet_t));
+    // Allocate memory for data
+    sequence_blocks[block_count - 1].packets[packet_count].data = malloc(PACKET_BUFFER_SIZE);
 
     // Read file character by character
     while ((nucleobase = getc(f_reference)) != EOF)
     {   
-        // Allocate more memory if there is not enough
-        if (current_block_size == limit_block_size)
+        // Create new packet if current packet is full
+        if ((current_block_size + 1) == PACKET_BUFFER_SIZE)
         {
-            limit_block_size = ++block_size_factor * BLOCK_BUFFER_BASE_SIZE;
-            sequence_blocks[block_count - 1].data = realloc(sequence_blocks[block_count - 1].data, limit_block_size);
+            // Delimit packet data with termination char
+            sequence_blocks[packet_count - 1].packets[packet_count - 1][current_packet_size] = '\0';
 
-            if (sequence_blocks[block_count - 1].data == NULL)
+            // Update packet counter
+            packet_count++;
+
+            // Create new packet
+            sequence_blocks[packet_count - 1].packets = realloc(sequence_blocks[packet_count - 1].packets, packet_count * sizeof(char*));
+
+            if (sequence_blocks[packet_count - 1].packets == NULL)
+                return ERROR_MEMORY_ALLOCATION_FAILED;
+
+            // Allocate memory for data
+            sequence_blocks[packet_count - 1].packets[packet_count - 1] = malloc(PACKET_BUFFER_SIZE);
+
+            if (sequence_blocks[packet_count - 1].packets[packet_count - 1] == NULL)
                 return ERROR_MEMORY_ALLOCATION_FAILED;
         }
 
@@ -282,8 +303,6 @@ int read_reference()
             return ERROR_NON_NUCLEOBASE_FOUND;
 
         // End of block found
-        
-        //if (isspace(nucleobase))
         if (nucleobase == '\r')
         {
             if ((nucleobase = getc(f_reference)) == '\n')
@@ -294,30 +313,34 @@ int read_reference()
                 if (current_block_size > max_length)
                     max_length = current_block_size;
 
-                // Delimit string with termination char
-                sequence_blocks[block_count - 1].data[current_block_size] = '\0';
-
                 // Reset block variables
                 current_block_size = INITIAL_BLOCK_SIZE;
-                block_size_factor = INITIAL_BLOCK_SIZE_FACTOR;
-                limit_block_size = block_size_factor * BLOCK_BUFFER_BASE_SIZE;
 
                 // Create new block
                 block_count++;
                 sequence_blocks = realloc(sequence_blocks, block_count * sizeof(seq_t));
                 sequence_blocks[block_count - 1].data = malloc(limit_block_size);
+
+                // Initialize number of packets
+                sequence_blocks[block_count - 1].no_packets = 0;
+                // Create first packet
+                sequence_blocks[block_count - 1].packets = malloc(packet_count * sizeof(char*));
+                // Allocate memory for data
+                sequence_blocks[block_count - 1].packets[packet_count] = malloc(PACKET_BUFFER_SIZE);
             }
         }
         else
         {
             // Store character
-            sequence_blocks[block_count - 1].data[current_block_size] = nucleobase;
+            sequence_blocks[block_count - 1].packets[packet_count - 1][current_packet_size] = nucleobase;
+            
             // Update current block size
             current_block_size++;
+            // Update current packet size
+            current_packet_size;
         }
     }
 
-    //printf("%s tam %d\n", sequence_blocks[0].data, sequence_blocks[0].size);
     block_count--;
 
     return OK_READ_REFERENCE;
