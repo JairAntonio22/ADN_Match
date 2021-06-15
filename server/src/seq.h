@@ -3,6 +3,7 @@
 
 typedef struct {
 	int size;
+	int numero_paquetes;
 	char *data;
 } seq_t;
 
