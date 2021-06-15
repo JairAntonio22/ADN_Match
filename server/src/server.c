@@ -73,22 +73,10 @@ char* reference_buffer;
 char* sample_buffer;
 // Nucleobase character
 char nucleobase;
-
-// Global flag to check connection status
-bool connected = false;
-// Global flags to check reference and sample sequences status
-int reference_status, sample_status;
-// Dinamically allocated memory size factor
-int block_size_factor;
-// Dinamically allocated memory sizes
-int limit_block_size;
-// Reference and sample block lengths
-int current_block_size;
 // Reference block count
-int block_count;
+int block_count = INITIAL_BLOCK_COUNT;
 
 int max_length = 0;
-
 //
 char percentage[INT_LENGTH];
 char mapped_sequences[INT_LENGTH];
@@ -110,11 +98,12 @@ bool is_nucleobase(char c)
 }
 
 seq_t* read_reference(char *filename) {
+    printf("Filename: %s", filename);
+
     // Open file with given name
     FILE *f_reference = fopen(filename, "r");
 
     // Initialize variables
-    int block_count = INITIAL_BLOCK_COUNT;
     int block_size_factor = INITIAL_BLOCK_SIZE_FACTOR;
     int limit_block_size = block_size_factor * BLOCK_BUFFER_BASE_SIZE;
     int current_block_size = INITIAL_BLOCK_SIZE;
@@ -161,6 +150,7 @@ seq_t* read_reference(char *filename) {
 
                 // Create new block
                 block_count++;
+                printf("Block count: %i\n", block_count);
                 sequence_blocks = realloc(sequence_blocks, block_count * sizeof(seq_t));
                 sequence_blocks[block_count - 1].data = malloc(limit_block_size);
             }
@@ -185,9 +175,10 @@ seq_t* read_sample(char *filename) {
     // Check if file with given name exists
     f_sample = fopen(filename, "r");
 
-    block_size_factor = INITIAL_BLOCK_SIZE_FACTOR;
-    limit_block_size = block_size_factor * SAMPLE_BUFFER_BASE_SIZE;
-    current_block_size = INITIAL_BLOCK_SIZE;
+    // Initialize variables
+    int block_size_factor = INITIAL_BLOCK_SIZE_FACTOR;
+    int limit_block_size = block_size_factor * BLOCK_BUFFER_BASE_SIZE;
+    int current_block_size = INITIAL_BLOCK_SIZE;
 
     seq_t *sample_block = malloc(sizeof(seq_t));
     sample_block->data = malloc(limit_block_size);
@@ -233,29 +224,38 @@ void func(int sockfd)
     int num_map = 0;
     float percent;
 
+
 	/*seq_t *seqs;
 	seq_t genoma;*/
 
     // infinite loop for chat
     for (;;) {
         //Leer sample
-        printf("Leyendo sample\n");
-        bzero(buff, 80);
-        read(sockfd, buff, 80);
-        seq_t *seq = read_sample(buff);
-        free(buff);
-        //Leer sequences
-        printf("Leyendo sequences\n");
+       // printf("Leyendo sample\n");
         bzero(buff, 80);
         read(sockfd, buff, 80);
         seq_t *seqs = read_reference(buff);
+
+        printf("y a se leyo seqs\n");
+
+        //Leer sequences
+        //printf("Leyendo sequences\n");
+        bzero(buff, 80);
+        read(sockfd, buff, 80);
+        seq_t *seq = read_sample(buff);
         
+        printf("ya se leyo seq\n");
+
+
         int pos[block_count];
+        printf("seqs: %d, block count: %d, seq: %d, nummap:%d\n",seqs[0].size, block_count, seq[0].size, num_map);
         batch_search(seqs, block_count, *seq, pos, &percent, &num_map);
+        printf("se acaba de hacer el batch search aaaaaaaaaaaaaaaaa");
+        printf("seqs: %d, block count: %d, seq: %d, percent: %f, nummap:%d\n", seqs[0].size, block_count, seq[0].size, percent, num_map);
        	// for (int i = 0; i < num_bloques_secuencia; i++) {
         // 	printf("String  is at position %d\n", pos[i]);
         // }
-
+        
         printf("Match percent: %2.2f%%\n", percent * 100);
         //copiar porcentaje al buffer y mandar
         sprintf(buff, "%2.2f", percent*100);

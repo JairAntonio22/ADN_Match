@@ -49,7 +49,7 @@ char request_buffer[INT_LENGTH];
 // Global flag to check connection status
 bool connected = false;
 
-int main()
+int main(void)
 {
     // //1. Init: create socket and connect to server
     // switch (init())
@@ -117,7 +117,7 @@ int upload_reference()
         return ERROR_REQUEST_NOT_SENT;
 }
 
-int upload_sequence()
+int upload_sample()
 {
     // Input buffer
     char input_buffer[INPUT_BUFFER_SIZE];
