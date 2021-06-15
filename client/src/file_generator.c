@@ -1,24 +1,24 @@
-/*
-#include <stdio.h>
-#include <stdlib.h>
 
-int main()
-{
-    FILE* sample;
-    FILE* sequence;
+// #include <stdio.h>
+// #include <stdlib.h>
 
-    sample = fopen("test_sample.txt", "w");
-    sequence = fopen("test_sequence.txt", "w");
+// int main()
+// {
+//     FILE* sample;
+//     FILE* sequence;
 
-    fprintf(sample, "ATCGATCGATCGATCG\r\n");
+//     sample = fopen("test_sample.txt", "w");
+//     sequence = fopen("test_sequence.txt", "w");
 
-    fprintf(sequence, "ATCGATCG\r\n");
-    fprintf(sequence, "ATCGATC\r\n");
-    fprintf(sequence, "ATCGAT\r\n");
-    fprintf(sequence, "ATCGA\r\n");
-    fprintf(sequence, "ATCG\r\n");
+//     fprintf(sample, "ACAAGATGCCATTGTCCCCCGGCCTCCTGCTGCTGCTGCTCTCCGGGGCCACGGCCACCGCTGCCCTGCCCCTGGAGGGTGGCCCCACCGGCCGAGACAGCGAGCATATGCAGGAAGCGGCAGGAATAAGGAAAAGCAGCCTCCTGACTTTCCTCGCTTGGTGGTTTGAGTGGACCTCCCAGGCCAGTGCCGGGCCCCTCATAGGAGAGGAAGCTCGGGAGGTGGCCAGGCGGCAGGAAGGCGCACCCCCCCAGCAATCCGCGCGCCGGGACAGAATGCCCTGCAGGAACTTCTTCTGGAAGACCTTCTCCTCCTGCAAATAAAACCTCACCCATGAATGCTCACGCAAGTTTAATTACAGACCTGAA\r\n");
 
-    fclose(sample);
-    fclose(sequence);
-}
-*/
+//     fprintf(sequence, "GCCTCCTGCTGCTGCTGCTCTCC\r\n");
+//     fprintf(sequence, "GGACCTCCCAGGCCAGTGCCGGG\r\n");
+//     fprintf(sequence, "AAGACCTTCTCCTCCTGCAAATA\r\n");
+//     fprintf(sequence, "TTCTTCTGGAAGACCTTCTCCTC\r\n");
+//     fprintf(sequence, "CCAGGCGGCAGGAAGGCGCACCCCCCCAGCAATCCGTGCGCCGG\r\n");
+
+//     fclose(sample);
+//     fclose(sequence);
+// }
+
