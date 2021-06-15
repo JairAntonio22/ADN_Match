@@ -421,16 +421,22 @@ int upload_sample()
 int print_results()
 {
     //Receive percentage
-    if (recv(socket_desc, percentage, INT_LENGTH, 0) < 0)
+    if (recv(socket_desc, percentage, INT_LENGTH, 0) < 0) {
+		printf("error 1\n");
         return ERROR_REPLY_NOT_RECEIVED;
+	}
 
     // Receive number of mapped sequences
-    if (recv(socket_desc, mapped_sequences, INT_LENGTH, 0) < 0)
+    if (recv(socket_desc, mapped_sequences, INT_LENGTH, 0) < 0) {
+		printf("error 2\n");
         return ERROR_REPLY_NOT_RECEIVED;
+	}
 
     // Receive number of unmapped sequences
-    if (recv(socket_desc, unmapped_sequences, INT_LENGTH, 0) < 0)
+    if (recv(socket_desc, unmapped_sequences, INT_LENGTH, 0) < 0) {
+		printf("error 3\n");
         return ERROR_REPLY_NOT_RECEIVED;
+	}
 
     // Receive and print results per block
     for (int i = 0; i < block_count; i++)
